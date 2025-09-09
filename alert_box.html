@@ -4,6 +4,8 @@
 <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/three@0.155.0/build/three.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@streamerbot/client/dist/streamerbot-client.js"></script>
+<!-- https://streamerbot.github.io/client/get-started/installation -->
 
 <style>
 :root{
@@ -514,68 +516,14 @@ async function showCard(card){
 }
 
 /* ======================= Streamer.bot events ======================= */
-let sock=null;
-function setConnected(ok){ el.status.style.display = ok ? 'none' : 'block'; }
 
-function connect(){
-  if (!CONFIG.AUTO_CONNECT) { setConnected(false); return; }
-  try{ sock = new WebSocket(`ws://${CONFIG.SB_HOST}:${CONFIG.SB_PORT}/`); }
-  catch(e){ setConnected(false); return; }
+//Connect to Streamer.bot Instance
+const sb = new StreamerbotClient();
 
-  sock.onopen = ()=>{
-    setConnected(true);
-    const sub = {
-      request: "Subscribe",
-      id: "alerts-sub-"+Date.now(),
-      events: { twitch: ["Follow","Raid","Cheer","Sub","ReSub","GiftSub","GiftBomb","AdRun","AdMidRoll"] }
-    };
-    sock.send(JSON.stringify(sub));
-  };
-  sock.onclose = ()=>{ setConnected(false); setTimeout(connect, 1200); };
-  sock.onerror = ()=> setConnected(false);
-  sock.onmessage = (ev)=>{
-    let msg; try{ msg = JSON.parse(String(ev.data||'')); }catch{ return; }
-    const evt = msg.event || msg;
-    if ((evt.source||evt.Source) !== 'Twitch') return;
-    const type = (evt.type||evt.Type||'');
-    const d = evt.data || evt.Data || {};
-
-    switch(type){
-      case 'Follow':
-        pushCard(new AlertCard('Follow', { user:d.displayName||d.username||'someone', note:'uplink joined' }));
-        break;
-      case 'Raid':
-        pushCard(new AlertCard('Raid', { user:d.displayName||d.username||'someone', viewers:d.viewers||d.viewercount||0 }));
-        break;
-      case 'Cheer':
-        pushCard(new AlertCard('Cheer', { user:d.displayName||d.username||'someone', bits:d.bits||0, message:d.message||'' }));
-        break;
-      case 'Sub': {
-        const tier = (d.tier||'T1').toString().toUpperCase();
-        const isPrime = !!d.isPrime;
-        if (isPrime) pushCard(new AlertCard('Prime', { user:d.displayName||d.username||'someone', message:d.message||'' }));
-        else pushCard(new AlertCard('Tier',  { user:d.displayName||d.username||'someone', tier, message:d.message||'' }));
-        break;
-      }
-      case 'ReSub':
-        pushCard(new AlertCard('ReSub', { user:d.displayName||d.username||'someone', months:d.cumulativeMonths||d.months||1, message:d.message||'' }));
-        break;
-      case 'GiftSub':
-        pushCard(new AlertCard('Gift', { user:d.displayName||d.username||'someone', count:d.gifts||1, note: d.recipient ? `to ${d.recipient}` : '' }));
-        break;
-      case 'GiftBomb':
-        pushCard(new AlertCard('Gift', { user:d.displayName||d.username||'someone', count:d.count||d.gifts||1 }));
-        break;
-      case 'AdRun':
-        pushCard(new AlertCard('AdRun', { length: Number(d.length||d.duration||CONFIG.TEST_ADRUN_SEC) }));
-        break;
-      case 'AdMidRoll':
-        pushCard(new AlertCard('AdMidRoll', { length: Number(d.length||d.duration||CONFIG.TEST_ADMID_SEC) }));
-        break;
-    }
-  };
-}
-if (CONFIG.AUTO_CONNECT) connect(); else setConnected(false);
+// Subscribe to all Twitch events - Testing Purposes
+sb.on('Twitch.*', (data) => {
+  console.log('Twitch Event Received:', data);
+});
 
 /* ======================= Offline test controls ======================= */
 if (CONFIG.SHOW_TEST_UI){
