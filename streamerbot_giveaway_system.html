@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta http-equiv="origin-trial" content="">
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NullHowl — Rewards Giveaway System</title>
+<link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* THEME — tweak freely */
+    --bg:#050705; 
+    --fg:#7CFF7C; 
+    --fg-dim:#57c957; 
+    --accent:#FFBF4D; 
+    --border:#2d3a2d;
+
+    --panel: rgba(10,14,10,0.9);
+    --chip-bg: rgba(124,255,124,0.08);
+    --chip-br: rgba(124,255,124,0.35);
+  }
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; }
+  body{
+    margin:0; font-family:VT323, monospace;
+    background:var(--bg); color:var(--fg);
+    display:flex; align-items:center; justify-content:center;
+    overflow:hidden;
+  }
+  .glow{ text-shadow:0 0 6px currentColor,0 0 18px currentColor; }
+
+  .wrap{
+    width:96vw; height:90vh; position:relative;
+    border:1px dashed var(--border);
+    padding:16px; background:linear-gradient(180deg, rgba(5,7,5,0.95), rgba(5,7,5,0.85));
+    overflow:hidden;
+  }
+  .hdr{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:12px; gap:12px;
+  }
+  .hdr .title{ font-size:36px; letter-spacing:1px; color:var(--fg); }
+  .status{
+    font-size:18px; color:var(--fg-dim);
+    border:1px dashed var(--border); padding:4px 8px; background:transparent;
+  }
+
+  /* PANELS */
+  .panel{
+    position:absolute; inset:56px 16px 16px 16px;
+    border:1px dashed var(--border); background:var(--panel);
+    display:none; place-items:center; overflow:hidden;
+  }
+  .panel.active{ display:grid; }
+
+  /* TIMER */
+  .timer-box{
+    display:flex; flex-direction:column; align-items:center; gap:16px;
+  }
+  .timer-big{
+    font-size:120px; line-height:1; color:var(--accent);
+  }
+  .timer-sub{
+    font-size:28px; color:var(--fg);
+  }
+  .bar{
+    width:60vw; height:10px; border:1px dashed var(--border);
+    position:relative; overflow:hidden;
+  }
+  .bar>i{
+    position:absolute; left:0; top:0; bottom:0; width:0%;
+    background:var(--accent);
+    box-shadow:0 0 8px var(--accent), 0 0 16px var(--accent);
+  }
+  .hint{
+    font-size:22px; color:var(--fg-dim);
+  }
+
+  /* WHEELS */
+  .wheel-stage{
+    width:100%; height:100%; display:grid; grid-template-columns:1fr auto; gap:16px; align-items:center; justify-items:center;
+    padding:16px;
+  }
+  .wheel-wrap{
+    position:relative; width:60vh; height:60vh; min-width:360px; min-height:360px;
+    border:1px dashed var(--border); background:rgba(0,0,0,0.25);
+    display:grid; place-items:center; overflow:visible;
+  }
+  canvas.wheel{ width:100%; height:100%; }
+  .pointer{
+    position:absolute; top:-6px; left:50%; transform:translateX(-50%);
+    width:0; height:0; border-left:14px solid transparent; border-right:14px solid transparent; border-bottom:22px solid var(--accent);
+    filter:drop-shadow(0 0 6px var(--accent));
+    z-index:3;
+  }
+  .legend{
+    font-size:22px; color:var(--fg-dim); margin-top:8px;
+  }
+  .side-list{
+    width:26vw; max-width:520px; min-width:280px; height:100%;
+    border:1px dashed var(--border); padding:12px; overflow:auto; background:rgba(0,0,0,0.15);
+  }
+  .side-title{ font-size:28px; margin-bottom:8px; color:var(--fg); }
+  .chip{
+    border:1px dashed var(--chip-br);
+    background:var(--chip-bg);
+    padding:6px 10px; margin:6px 0;
+    font-size:22px; color:var(--fg);
+    display:inline-flex; gap:8px; align-items:center;
+    text-shadow:0 0 6px currentColor;
+  }
+  .chip .dot{
+    width:8px; height:8px; background:var(--accent); box-shadow:0 0 6px var(--accent);
+    display:inline-block;
+  }
+
+  /* DEV PANEL (toggle via CONFIG.SHOW_TEST_UI) */
+  .dev{
+    position:absolute; right:10px; top:10px; z-index:30;
+    border:1px dashed var(--border); padding:8px; background:rgba(0,0,0,0.6);
+    display:flex; gap:6px; flex-wrap:wrap; max-width:36vw;
+  }
+  .dev button{
+    font-family:inherit; font-size:18px; padding:4px 8px; cursor:pointer;
+    border:1px dashed var(--border); background:#0f120f; color:var(--fg);
+  }
+  .note{
+    color:var(--fg-dim); font-size:16px; width:100%; opacity:0.9;
+  }
+
+  /* THREE.JS effect layer */
+  #fx{
+    position:absolute; inset:0; pointer-events:none; z-index:5;
+  }
+
+  /* Small helpers */
+  .hide{ display:none!important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hdr">
+    <div class="title glow">[ NULLHOWL | Giveaway ]</div>
+    <div class="status glow" id="status">idle</div>
+  </div>
+
+  <!-- TIMER PANEL -->
+  <section class="panel" id="panel-timer" aria-live="polite">
+    <div class="timer-box">
+      <div class="timer-big glow" id="time">00:30</div>
+      <div class="timer-sub">entries so far: <span id="pcount">0</span></div>
+      <div class="bar"><i id="barfill"></i></div>
+      <div class="hint glow">type <span id="cmd">!enter</span> in chat to join</div>
+    </div>
+  </section>
+
+  <!-- USER WHEEL PANEL -->
+  <section class="panel" id="panel-users">
+    <div class="wheel-stage">
+      <div class="wheel-wrap">
+        <div class="pointer"></div>
+        <canvas class="wheel" id="wheel-users" width="1024" height="1024"></canvas>
+        <div class="legend">participant wheel</div>
+      </div>
+      <aside class="side-list">
+        <div class="side-title glow">Winner</div>
+        <div id="winner-slot"></div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- REWARDS WHEEL PANEL -->
+  <section class="panel" id="panel-rewards">
+    <div class="wheel-stage">
+      <div class="wheel-wrap">
+        <div class="pointer"></div>
+        <canvas class="wheel" id="wheel-rewards" width="1024" height="1024"></canvas>
+        <div class="legend">rewards wheel</div>
+      </div>
+      <aside class="side-list">
+        <div class="side-title glow">Selected Rewards</div>
+        <div id="rewards-picked"></div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- THREE.JS FX -->
+  <canvas id="fx"></canvas>
+
+  <!-- DEV TOOLS (disable via CONFIG.SHOW_TEST_UI=false) -->
+  <div class="dev" id="dev">
+    <button id="dev-start">Start (DEV)</button>
+    <button id="dev-add">+ Random User</button>
+    <button id="dev-fast">Fast-forward Timer</button>
+    <div class="note">DEV only. Streamer.bot should call <code>GIVEAWAY_API.start()</code> and <code>GIVEAWAY_API.addParticipant("name")</code>.</div>
+  </div>
+
+</div>
+
+<!-- anime.js & three.js -->
+<script src="https://cdn.jsdelivr.net/npm/animejs@3.2.1/lib/anime.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+
+<script>
+/* ===========================
+   CONFIG
+   =========================== */
+const CONFIG = {
+  TIMER_SECONDS: 30,            // countdown before locking entries
+  REWARD_SPINS: 3,              // number of rewards to spin for the winner
+  COMMAND: '!enter',            // UI-only hint; SB should actually listen & pass usernames
+  SHOW_TEST_UI: true,           // set false in production
+  REWARDS_CSV_PATH: './rewards.csv', // CSV (one reward per line or "reward,weight")
+  COLORS: {
+    bg: getComputedStyle(document.documentElement).getPropertyValue('--bg').trim(),
+    fg: getComputedStyle(document.documentElement).getPropertyValue('--fg').trim(),
+    accent: getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(),
+    dim: getComputedStyle(document.documentElement).getPropertyValue('--fg-dim').trim(),
+    border: getComputedStyle(document.documentElement).getPropertyValue('--border').trim(),
+  }
+};
+
+/* ===========================
+   STATE (exposed for later use)
+   =========================== */
+const GIVEAWAY_STATE = {
+  participants: [],
+  winner: null,
+  rewards: [],
+  running: false,
+  startedAt: null
+};
+window.GIVEAWAY_STATE = GIVEAWAY_STATE; // <- accessible externally
+
+/* ===========================
+   UTIL
+   =========================== */
+const el = s => document.querySelector(s);
+const fmt = s => s.toString().padStart(2,'0');
+function mmss(sec){
+  const m = Math.floor(sec/60), s = Math.floor(sec%60);
+  return `${fmt(m)}:${fmt(s)}`;
+}
+function glowPulse(target){
+  anime({ targets: target, easing: 'easeInOutSine', duration: 900, direction:'alternate', loop:3,
+    opacity:[1,0.4] });
+}
+
+/* ===========================
+   PANEL SHOW/HIDE (anime.js)
+   =========================== */
+async function revealPanel(panel){
+  panel.classList.add('active');
+  panel.style.opacity = 0; panel.style.transform = 'scale(0.96)';
+  await anime({ targets: panel, opacity:[0,1], scale:[0.96,1], duration:500, easing:'easeOutQuad' }).finished;
+}
+async function hidePanel(panel){
+  await anime({ targets: panel, opacity:[1,0], scale:[1,0.98], duration:300, easing:'easeInQuad' }).finished;
+  panel.classList.remove('active');
+}
+
+/* ===========================
+   WHEEL CLASS (Canvas + anime.js)
+   =========================== */
+class Wheel {
+  constructor(canvas, options=[], scheme=CONFIG.COLORS){
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d');
+    this.options = options;
+    this.rotation = 0; // radians
+    this.scheme = scheme;
+    this._container = canvas.parentElement; // wheel-wrap
+  }
+  setOptions(opts){ this.options = [...opts]; this.draw(); }
+  _sliceColor(i){
+    // alternating tints
+    const base = this.scheme.fg;
+    const a = i % 2 ? '0.15' : '0.28';
+    return `rgba(124,255,124,${a})`;
+  }
+  draw(){
+    const {ctx, canvas} = this;
+    const N = Math.max(this.options.length,1);
+    const cx = canvas.width/2, cy = canvas.height/2, r = Math.min(cx,cy)-6;
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.save();
+    ctx.translate(cx,cy);
+    ctx.rotate(this.rotation);
+    // slices
+    for (let i=0;i<N;i++){
+      const a0 = (i/N)*Math.PI*2, a1 = ((i+1)/N)*Math.PI*2;
+      ctx.beginPath();
+      ctx.moveTo(0,0);
+      ctx.arc(0,0,r,a0,a1);
+      ctx.closePath();
+      ctx.fillStyle = this._sliceColor(i);
+      ctx.fill();
+      ctx.strokeStyle = CONFIG.COLORS.border;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // labels
+      const mid = (a0+a1)/2;
+      ctx.save();
+      ctx.rotate(mid);
+      ctx.translate(r*0.72,0);
+      ctx.rotate(Math.PI/2);
+      ctx.fillStyle = CONFIG.COLORS.fg;
+      ctx.font = '28px VT323';
+      ctx.textAlign='center';
+      const txt = String(this.options[i]).slice(0,22);
+      ctx.fillText(txt,0,0);
+      ctx.restore();
+    }
+    ctx.restore();
+    // center hub
+    ctx.beginPath();
+    ctx.arc(cx,cy,30,0,Math.PI*2);
+    ctx.fillStyle = CONFIG.COLORS.accent;
+    ctx.shadowColor = CONFIG.COLORS.accent;
+    ctx.shadowBlur = 20;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+  // Spin to a given index so that the top pointer (0 rad) lands on it
+  spinToIndex(index, {revs=6, duration=4500, easing='easeOutQuart'}={}){
+    const N = Math.max(this.options.length,1);
+    const sliceAngle = (Math.PI*2)/N;
+    // target is the center of index slice at pointer (top). Our wheel rotates opposite.
+    const targetAngle = (Math.PI*2*revs) + (Math.PI/2) - (index + 0.5)*sliceAngle;
+    return new Promise(resolve=>{
+      anime({
+        targets: this,
+        rotation: [this.rotation, targetAngle],
+        duration, easing,
+        update: ()=> this.draw(),
+        complete: ()=>{ this.rotation = targetAngle%(Math.PI*2); resolve(); }
+      });
+    });
+  }
+}
+
+/* ===========================
+   THREE.js simple burst on land
+   =========================== */
+class FX {
+  constructor(canvas){
+    this.canvas = canvas;
+    this.scene = new THREE.Scene();
+    this.camera = new THREE.PerspectiveCamera(45, canvas.clientWidth/canvas.clientHeight, 0.1, 1000);
+    this.renderer = new THREE.WebGLRenderer({canvas, alpha:true, antialias:true});
+    this.renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
+    this.camera.position.z = 5;
+    this.clock = new THREE.Clock();
+    this.bursts = [];
+    window.addEventListener('resize', ()=>this._resize());
+    this._resize();
+    this._loop();
+  }
+  _resize(){
+    const w = this.canvas.clientWidth, h = this.canvas.clientHeight;
+    this.renderer.setSize(w,h,false);
+    this.camera.aspect = w/h; this.camera.updateProjectionMatrix();
+  }
+  burst(){
+    // radial particles
+    const count = 120;
+    const geom = new THREE.BufferGeometry();
+    const pos = new Float32Array(count*3);
+    const vels = new Float32Array(count*3);
+    for(let i=0;i<count;i++){
+      const a = Math.random()*Math.PI*2, s = Math.random()*1.8+0.6;
+      pos[i*3+0]=0; pos[i*3+1]=0; pos[i*3+2]=0;
+      vels[i*3+0]=Math.cos(a)*s; vels[i*3+1]=Math.sin(a)*s; vels[i*3+2]=(Math.random()-0.5)*0.3;
+    }
+    geom.setAttribute('position', new THREE.BufferAttribute(pos,3));
+    geom.setAttribute('velocity', new THREE.BufferAttribute(vels,3));
+    const mat = new THREE.PointsMaterial({ size:0.05, color:CONFIG.COLORS.accent, transparent:true, opacity:1 });
+    const pts = new THREE.Points(geom,mat);
+    pts.userData.life = 0;
+    this.scene.add(pts);
+    this.bursts.push(pts);
+  }
+  _loop(){
+    requestAnimationFrame(()=>this._loop());
+    const dt = this.clock.getDelta();
+    for (let i=this.bursts.length-1;i>=0;i--){
+      const pts = this.bursts[i];
+      const pos = pts.geometry.attributes.position;
+      const vel = pts.geometry.attributes.velocity;
+      for(let j=0;j<pos.count;j++){
+        pos.array[j*3+0]+=vel.array[j*3+0]*dt;
+        pos.array[j*3+1]+=vel.array[j*3+1]*dt;
+        pos.array[j*3+2]+=vel.array[j*3+2]*dt;
+      }
+      pos.needsUpdate = true;
+      pts.userData.life += dt;
+      pts.material.opacity = Math.max(0, 1 - pts.userData.life/0.9);
+      if (pts.userData.life>0.9){
+        this.scene.remove(pts); pts.geometry.dispose(); pts.material.dispose();
+        this.bursts.splice(i,1);
+      }
+    }
+    this.renderer.render(this.scene,this.camera);
+  }
+}
+const fx = new FX(document.getElementById('fx'));
+
+/* ===========================
+   REWARDS LOADING (CSV)
+   =========================== */
+async function loadRewards(){
+  try{
+    const r = await fetch(CONFIG.REWARDS_CSV_PATH, {cache:'no-store'});
+    if(!r.ok) throw new Error('fetch failed');
+    const txt = await r.text();
+    const lines = txt.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+    const expanded = [];
+    for (const ln of lines){
+      const [name, weightStr] = ln.split(',').map(s=>String(s||'').trim());
+      const w = Math.max(1, parseInt(weightStr||'1',10)||1);
+      for(let i=0;i<w;i++) expanded.push(name);
+    }
+    return expanded.length ? expanded : ['Sticker','Emote Unlock','Discord Role','Hydrate','Stretch','Spin Again'];
+  }catch(e){
+    // fallback
+    return ['Sticker','Emote Unlock','Discord Role','Hydrate','Stretch','Spin Again'];
+  }
+}
+
+/* ===========================
+   CORE FLOW
+   =========================== */
+const panels = {
+  timer: el('#panel-timer'),
+  users: el('#panel-users'),
+  rewards: el('#panel-rewards'),
+};
+const status = el('#status');
+const timeEl = el('#time');
+const pcount = el('#pcount');
+const cmdEl = el('#cmd');
+const barfill = el('#barfill');
+const winnerSlot = el('#winner-slot');
+const rewardsPicked = el('#rewards-picked');
+
+let usersWheel, rewardsWheel;
+function buildWheels(){
+  usersWheel = new Wheel(el('#wheel-users'), GIVEAWAY_STATE.participants);
+  usersWheel.draw();
+  rewardsWheel = new Wheel(el('#wheel-rewards'), rewardsCache);
+  rewardsWheel.draw();
+}
+
+/* Temporary cache after CSV load */
+let rewardsCache = [];
+
+async function startCountdown(){
+  status.textContent = 'entries open';
+  cmdEl.textContent = CONFIG.COMMAND;
+
+  await revealPanel(panels.timer);
+  const total = CONFIG.TIMER_SECONDS;
+  let t = total;
+  timeEl.textContent = mmss(t);
+  barfill.style.width = '0%';
+  anime({ targets: barfill, width: ['0%','100%'], easing:'linear', duration: total*1000 });
+  return new Promise(resolve=>{
+    const iv = setInterval(()=>{
+      t--; timeEl.textContent = mmss(Math.max(t,0));
+      pcount.textContent = GIVEAWAY_STATE.participants.length;
+      if (t<=0){
+        clearInterval(iv);
+        resolve();
+      }
+    },1000);
+  });
+}
+
+async function spinUsers(){
+  await hidePanel(panels.timer);
+  usersWheel.setOptions(GIVEAWAY_STATE.participants.length ? GIVEAWAY_STATE.participants : ['No Entries']);
+  await revealPanel(panels.users);
+  status.textContent = 'picking winner…';
+
+  const N = usersWheel.options.length;
+  const index = Math.floor(Math.random()*N);
+  await usersWheel.spinToIndex(index, {revs:7, duration:5200});
+  fx.burst();
+  const winner = usersWheel.options[index];
+  GIVEAWAY_STATE.winner = winner;
+  // display winner chip
+  winnerSlot.innerHTML = '';
+  const chip = document.createElement('div');
+  chip.className = 'chip glow';
+  chip.innerHTML = `<span class="dot"></span> ${winner}`;
+  chip.style.opacity = 0; chip.style.transform = 'translateY(-8px)';
+  winnerSlot.appendChild(chip);
+  await anime({targets: chip, opacity:[0,1], translateY:[-8,0], duration:500, easing:'easeOutQuad'}).finished;
+
+  await new Promise(r=>setTimeout(r,900));
+  await hidePanel(panels.users);
+}
+
+async function spinRewards(){
+  rewardsWheel.setOptions(rewardsCache);
+  await revealPanel(panels.rewards);
+  status.textContent = 'rolling rewards…';
+  GIVEAWAY_STATE.rewards = [];
+
+  for (let i=0;i<CONFIG.REWARD_SPINS;i++){
+    const N = rewardsWheel.options.length;
+    const idx = Math.floor(Math.random()*N);
+    await rewardsWheel.spinToIndex(idx, {revs: 6 + Math.floor(Math.random()*3), duration: 4200 + Math.floor(Math.random()*900)});
+    fx.burst();
+    const prize = rewardsWheel.options[idx];
+    GIVEAWAY_STATE.rewards.push(prize);
+    addRewardChip(prize, i);
+    await new Promise(r=>setTimeout(r,700));
+  }
+
+  status.textContent = 'complete';
+  // brief pause then hide
+  await new Promise(r=>setTimeout(r,1200));
+  await hidePanel(panels.rewards);
+  status.textContent = `winner: ${GIVEAWAY_STATE.winner} | rewards: ${GIVEAWAY_STATE.rewards.join(' , ')}`;
+}
+
+function addRewardChip(text, i){
+  const chip = document.createElement('div');
+  chip.className = 'chip glow';
+  chip.innerHTML = `<span class="dot"></span> ${text}`;
+  chip.style.opacity=0; chip.style.transform='translateX(12px)';
+  rewardsPicked.appendChild(chip);
+  anime.timeline()
+    .add({ targets: chip, opacity:[0,1], translateX:[12,0], duration:450, easing:'easeOutQuad'})
+    .add({ targets: chip, scale:[1,1.05,1], duration:350, easing:'easeInOutSine'});
+}
+
+/* ===========================
+   PUBLIC API (Streamer.bot hooks)
+   =========================== */
+window.GIVEAWAY_API = {
+  /**
+   * Streamer.bot should call this to start the entire flow.
+   * You can optionally pass overrides: { timerSeconds, rewardSpins, rewardsCsvPath }
+   */
+  async start(overrides={}){
+    // merge overrides
+    if (typeof overrides.timerSeconds==='number') CONFIG.TIMER_SECONDS = Math.max(3, overrides.timerSeconds|0);
+    if (typeof overrides.rewardSpins==='number') CONFIG.REWARD_SPINS = Math.max(1, overrides.rewardSpins|0);
+    if (typeof overrides.rewardsCsvPath==='string') CONFIG.REWARDS_CSV_PATH = overrides.rewardsCsvPath;
+
+    // reset state
+    GIVEAWAY_STATE.participants = [];
+    GIVEAWAY_STATE.winner = null;
+    GIVEAWAY_STATE.rewards = [];
+    rewardsPicked.innerHTML = '';
+    winnerSlot.innerHTML = '';
+    status.textContent = 'loading rewards…';
+    GIVEAWAY_STATE.running = true;
+    GIVEAWAY_STATE.startedAt = Date.now();
+
+    rewardsCache = await loadRewards();
+    buildWheels();
+
+    // === TIMER ===
+    await startCountdown();            // SB listens to chat and calls addParticipant()
+    // === LOCK ENTRIES ===
+    status.textContent = 'entries closed';
+    // === USERS WHEEL ===
+    await spinUsers();
+    // === REWARDS WHEEL ===
+    await spinRewards();
+    GIVEAWAY_STATE.running = false;
+    // Done. SB can now read winner/rewards via GIVEAWAY_STATE or the getters below.
+  },
+
+  /** Streamer.bot should call this whenever a correct chat command is detected. */
+  addParticipant(username){
+    if (!GIVEAWAY_STATE.running) return;
+    const name = String(username||'').trim();
+    if (!name) return;
+    if (!GIVEAWAY_STATE.participants.includes(name)){
+      GIVEAWAY_STATE.participants.push(name);
+      pcount.textContent = GIVEAWAY_STATE.participants.length;
+      // small visual ping
+      glowPulse(panels.timer);
+    }
+  },
+
+  /** Optional graceful stop (if you add a cancel flow). */
+  stop(){
+    GIVEAWAY_STATE.running = false;
+    status.textContent = 'stopped';
+    Object.values(panels).forEach(p=>p.classList.remove('active'));
+  },
+
+  /** Simple getters for your SB actions */
+  getWinner(){ return GIVEAWAY_STATE.winner; },
+  getRewards(){ return [...GIVEAWAY_STATE.rewards]; },
+  getParticipants(){ return [...GIVEAWAY_STATE.participants]; }
+};
+
+/* ===========================
+   INIT + DEV HELPERS
+   =========================== */
+(async function init(){
+  // show/hide dev tools
+  el('#dev').style.display = CONFIG.SHOW_TEST_UI ? 'block' : 'none';
+
+  // preload rewards and wheels to avoid first-draw hitch
+  rewardsCache = await loadRewards();
+  buildWheels();
+
+  // wire dev buttons
+  if (CONFIG.SHOW_TEST_UI){
+    el('#dev-start').onclick = ()=> window.GIVEAWAY_API.start();
+    el('#dev-add').onclick = ()=>{
+      const n = 'user'+Math.floor(Math.random()*9999).toString().padStart(4,'0');
+      window.GIVEAWAY_API.addParticipant(n);
+    };
+    el('#dev-fast').onclick = ()=>{
+      // jump timer to 2s remaining in dev
+      CONFIG.TIMER_SECONDS = 2;
+    };
+  }
+})();
+</script>
+</body>
+</html>
