@@ -1,0 +1,477 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta http-equiv="Cache-Control" content="no-cache" />
+<link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+
+<style>
+    :root {
+        --bg: #050705;
+        --fg: #7CFF7C;
+        --fg-dim: #57c957;
+        --accent: #FFBF4D;
+        --border: #2d3a2d;
+        --font: "VT323", monospace;
+        --w: 1920px;
+        --h: 1080px;
+    }
+
+    * {
+        box-sizing: border-box;
+    }
+
+    html,
+    body {
+        margin: 0;
+        background: transparent;
+    }
+
+    #stage {
+        width: var(--w);
+        height: var(--h);
+        margin: 0 auto;
+        color: var(--fg);
+        font: 28px var(--font);
+        letter-spacing: .02em;
+        background: rgba(0, 0, 0, 0);
+        /* fully transparent overlay */
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* Connection badge: visible only when DISCONNECTED */
+    #conn {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 50;
+        background: #310;
+        color: #f66;
+        border: 1px dashed #a44;
+        padding: 6px 10px;
+        font-size: 18px;
+        display: none;
+        text-shadow: 0 0 3px currentColor, 0 0 8px currentColor, 0 0 14px currentColor;
+    }
+
+    /* Credits frame */
+    #frame {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 24px;
+    }
+
+    .head {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 12px;
+        border: 1px dashed var(--fg-dim);
+        padding: 10px 12px;
+        background: rgba(0, 0, 0, .15);
+    }
+
+    .head .title {
+        font-size: 42px;
+    }
+
+    .head .meta {
+        color: var(--fg-dim);
+        font-size: 22px;
+    }
+
+    .viewport {
+        position: relative;
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
+        border: 1px dashed var(--border);
+        background: rgba(0, 0, 0, .75);
+    }
+
+    /* The rolling content container (we animate translateY) */
+    #roll {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 100%;
+        /* start off-screen */
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        padding: 24px;
+    }
+
+    /* Section styles */
+    .section {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .hline {
+        color: var(--accent);
+        font-size: 24px;
+        letter-spacing: .06em;
+        border-bottom: 1px dashed var(--border);
+        padding-bottom: 4px;
+        text-shadow: 0 0 3px currentColor, 0 0 8px currentColor, 0 0 14px currentColor;
+    }
+
+    .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px 16px;
+    }
+
+    .badge {
+        border: 1px dashed var(--fg-dim);
+        padding: 4px 8px;
+        font-size: 22px;
+        text-shadow: 0 0 3px currentColor, 0 0 8px currentColor, 0 0 14px currentColor;
+    }
+
+    .note {
+        color: var(--fg-dim);
+        font-size: 20px;
+    }
+
+    /* Footer tag */
+    .footer {
+        display: flex;
+        justify-content: flex-end;
+        color: var(--fg-dim);
+        font-size: 20px;
+        margin-top: 10px;
+        text-shadow: 0 0 3px currentColor, 0 0 8px currentColor, 0 0 14px currentColor;
+    }
+
+    /* Amber sidebar accent on the viewport (subtle, optional) */
+    .viewport::before {
+        content: "";
+        position: absolute;
+        left: 8px;
+        top: 10px;
+        bottom: 10px;
+        width: 4px;
+        background: var(--accent);
+        box-shadow: 0 0 10px rgba(255, 191, 77, .45);
+        opacity: .85;
+    }
+
+    /* Controls (hidden in OBS; use for testing) */
+    #testUI {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        display: flex;
+        gap: 8px;
+        z-index: 60;
+        font-size: 16px;
+        pointer-events: auto;
+    }
+
+    .testbtn {
+        background: rgba(0, 0, 0, .75);
+        border: 1px dashed var(--border);
+        color: var(--fg);
+        padding: 4px 8px;
+        cursor: pointer;
+    }
+
+    .testbtn:hover {
+        background: rgba(0, 0, 0, .92);
+    }
+
+    /* Glow everywhere that matters */
+    .head .title,
+    .head .meta,
+    .hline,
+    .badge,
+    .note {
+        text-shadow: 0 0 3px currentColor, 0 0 8px currentColor, 0 0 14px currentColor;
+    }
+</style>
+
+<div id="stage">
+    <div id="conn">Not connected to Streamer.bot</div>
+
+    <div id="frame">
+        <div class="head">
+            <div class="title">SESSION CREDITS // STREAM END</div>
+            <div class="meta" id="meta">nh://credits · chk=N U L L H O W L</div>
+        </div>
+
+        <div class="viewport">
+            <div id="roll"></div>
+        </div>
+    </div>
+
+    <!-- Test UI -->
+    <div id="testUI">
+        <div class="testbtn" data-k="follow">+Follow</div>
+        <div class="testbtn" data-k="sub">+Sub T1</div>
+        <div class="testbtn" data-k="prime">+Prime</div>
+        <div class="testbtn" data-k="gift">Gift x5</div>
+        <div class="testbtn" data-k="cheer">Cheer 500</div>
+        <div class="testbtn" data-k="raid">Raid 23</div>
+        <div class="testbtn" data-k="like">Like +1000</div>
+        <div class="testbtn" data-k="tgift">TT Gift x3</div>
+        <div class="testbtn" data-k="run">Run Credits</div>
+        <div class="testbtn" data-k="reset">Reset</div>
+    </div>
+</div>
+
+<script>
+    /* ===================== CONFIG (edit me) ===================== */
+    const CONFIG = {
+        CANVAS: { width: 1920, height: 1080 },
+        SHOW_TEST_UI: true,                 // hide in production if you like
+        SB: { HOST: '127.0.0.1', PORT: 8080, AUTO_CONNECT: true },
+        // Credits timing
+        INTRO_MS: 800,                      // fade-in header
+        SCROLL_MS: 35000,                   // total time to scroll top->bottom
+        OUTRO_MS: 1000,                     // fade-out at end
+        GAP_PX: 120,                        // gap below final line before it leaves the viewport
+        // Sections to render (toggle on/off)
+        SECTIONS: {
+            FOLLOWERS: true,
+            SUBS: true,
+            GIFTS: true,
+            CHEERS: true,
+            RAIDS: true,
+            TIKTOK: true
+        },
+        // Lore-ish headers
+        LABELS: {
+            FOLLOWERS: "Uplink Nodes",
+            SUBS: "Service Contracts",
+            GIFTS: "Grant Bundles",
+            CHEERS: "Signal Boosters",
+            RAIDS: "Allied Convoys",
+            TIKTOK: "TikTok Relay"
+        }
+    };
+    /* =========================================================== */
+
+    // Apply canvas size
+    document.documentElement.style.setProperty('--w', CONFIG.CANVAS.width + 'px');
+    document.documentElement.style.setProperty('--h', CONFIG.CANVAS.height + 'px');
+
+    // Connection badge helpers
+    const elConn = document.getElementById('conn');
+    function setConnected(x) {
+        elConn.style.display = x ? 'none' : 'block';   // show ONLY when disconnected
+    }
+
+    // ---------- Session store ----------
+    const store = {
+        followers: new Set(),
+        subs: [],           // {user, tier}
+        gifts: new Map(),   // gifter -> count
+        cheers: new Map(),  // user -> bits total
+        raids: [],          // {user, viewers}
+        // TikTok
+        ttLikes: 0,
+        ttGifts: new Map(), // user -> count
+        ttSubs: []          // {user}
+    };
+
+    function addFollower(u) { if (!u) return; store.followers.add(u); }
+    function addSub(u, t) { if (!u) return; store.subs.push({ user: u, tier: t || 'T1' }); }
+    function addGift(u, c) { if (!u) return; const v = (store.gifts.get(u) || 0) + (Number(c) || 1); store.gifts.set(u, v); }
+    function addCheer(u, b) { if (!u) return; const v = (store.cheers.get(u) || 0) + (Number(b) || 0); store.cheers.set(u, v); }
+    function addRaid(u, v) { if (!u) return; store.raids.push({ user: u, viewers: Number(v) || 0 }); }
+    function addTTLike(n) { store.ttLikes += Number(n) || 0; }
+    function addTTGift(u, c) { if (!u) return; store.ttGifts.set(u, (store.ttGifts.get(u) || 0) + (Number(c) || 1)); }
+    function addTTSub(u) { if (!u) return; store.ttSubs.push({ user: u }); }
+
+    function resetStore() {
+        store.followers.clear();
+        store.subs = [];
+        store.gifts.clear();
+        store.cheers.clear();
+        store.raids = [];
+        store.ttLikes = 0;
+        store.ttGifts.clear();
+        store.ttSubs = [];
+    }
+
+    // ---------- Build credits DOM ----------
+    function h(tag, cls, txt) { const n = document.createElement(tag); if (cls) n.className = cls; if (txt != null) n.textContent = txt; return n; }
+
+    function buildRoll() {
+        const roll = document.getElementById('roll');
+        roll.innerHTML = '';
+
+        const addSection = (title, rows) => {
+            if (!rows || rows.length === 0) return;
+            const sec = h('div', 'section');
+            sec.appendChild(h('div', 'hline', title));
+            const rowWrap = h('div', 'row');
+            rows.forEach(t => rowWrap.appendChild(h('div', 'badge', t)));
+            sec.appendChild(rowWrap);
+            roll.appendChild(sec);
+        };
+
+        if (CONFIG.SECTIONS.FOLLOWERS) {
+            const list = Array.from(store.followers.values()).sort((a, b) => a.localeCompare(b));
+            addSection(CONFIG.LABELS.FOLLOWERS, list);
+        }
+        if (CONFIG.SECTIONS.SUBS) {
+            const rows = store.subs.map(s => `${s.user} · ${s.tier.toUpperCase()}`);
+            addSection(CONFIG.LABELS.SUBS, rows);
+        }
+        if (CONFIG.SECTIONS.GIFTS) {
+            const rows = Array.from(store.gifts.entries())
+                .sort((a, b) => b[1] - a[1])
+                .map(([u, c]) => `${u} ×${c}`);
+            addSection(CONFIG.LABELS.GIFTS, rows);
+        }
+        if (CONFIG.SECTIONS.CHEERS) {
+            const rows = Array.from(store.cheers.entries())
+                .sort((a, b) => b[1] - a[1])
+                .map(([u, b]) => `${u} +${b}μ`);
+            addSection(CONFIG.LABELS.CHEERS, rows);
+        }
+        if (CONFIG.SECTIONS.RAIDS) {
+            const rows = store.raids.map(r => `${r.user} +${r.viewers}`);
+            addSection(CONFIG.LABELS.RAIDS, rows);
+        }
+        if (CONFIG.SECTIONS.TIKTOK) {
+            const rows = [];
+            if (store.ttLikes > 0) rows.push(`Likes +${store.ttLikes.toLocaleString()}`);
+            Array.from(store.ttGifts.entries()).forEach(([u, c]) => rows.push(`${u} ×${c}`));
+            store.ttSubs.forEach(s => rows.push(`${s.user} · Sub`));
+            addSection(CONFIG.LABELS.TIKTOK, rows);
+        }
+
+        roll.appendChild(h('div', 'footer', 'nh://credits · chk=N U L L H O W L'));
+    }
+
+    // ---------- Animate credits ----------
+    let running = false;
+    async function runCredits() {
+        if (running) return;
+        running = true;
+
+        const roll = document.getElementById('roll');
+        const viewport = document.querySelector('.viewport');
+
+        buildRoll();
+
+        // Measure total height now that content is placed
+        roll.style.top = viewport.clientHeight + 'px';
+        const totalHeight = roll.scrollHeight + CONFIG.GAP_PX;
+
+        // Intro fade on the frame (optional subtle)
+        await anime({ targets: '.head', opacity: [0, 1], duration: CONFIG.INTRO_MS, easing: 'easeOutQuad' }).finished;
+
+        // Scroll up
+        await anime({
+            targets: roll,
+            translateY: [0, -totalHeight],
+            duration: CONFIG.SCROLL_MS,
+            easing: 'linear'
+        }).finished;
+
+        // Outro fade of everything
+        await anime({ targets: '#frame', opacity: [1, 0], duration: CONFIG.OUTRO_MS, easing: 'easeInQuad' }).finished;
+
+        // Reset visuals (keep data unless you want to clear)
+        document.getElementById('frame').style.opacity = 1;
+        roll.style.transform = 'translateY(0)';
+        running = false;
+    }
+
+    // ---------- Streamer.bot WebSocket ----------
+    let sock = null;
+    function connectSB() {
+        if (!CONFIG.SB.AUTO_CONNECT) return;
+        try {
+            sock = new WebSocket(`ws://${CONFIG.SB.HOST}:${CONFIG.SB.PORT}/`);
+        } catch (e) {
+            setConnected(false);
+            return;
+        }
+        sock.onopen = () => {
+            setConnected(true);
+            // Subscribe to Twitch + TikTok event families
+            const sub = {
+                request: "Subscribe",
+                id: "credits-" + Date.now(),
+                events: {
+                    twitch: ["Follow", "Sub", "ReSub", "GiftSub", "GiftBomb", "Cheer", "Raid"],
+                    tiktok: ["Follow", "Like", "Gift", "Sub"]
+                }
+            };
+            sock.send(JSON.stringify(sub));
+        };
+        sock.onclose = () => { setConnected(false); setTimeout(connectSB, 1500); };
+        sock.onerror = () => setConnected(false);
+        sock.onmessage = (ev) => {
+            let msg; try { msg = JSON.parse(String(ev.data || '')); } catch { return; }
+            const src = (msg.event?.source || msg.Source || '').toLowerCase();
+            const typ = (msg.event?.type || msg.Type || '').toLowerCase();
+            const dat = msg.event?.data || msg.Data || {};
+
+            const user = dat.displayName || dat.username || dat.user || dat.name || 'someone';
+
+            if (src === 'twitch') {
+                if (typ === 'follow') { addFollower(user); }
+                else if (typ === 'sub' || typ === 'resub') {
+                    const tier = (dat.tier === 'Prime' || dat.isPrime) ? 'PRIME' :
+                        dat.tier ? String(dat.tier).toUpperCase().replace(/^1/, 'T') : 'T1';
+                    addSub(user, tier);
+                }
+                else if (typ === 'giftsub' || typ === 'giftbomb') { addGift(user, dat.count || dat.gifts || 1); }
+                else if (typ === 'cheer') { addCheer(user, dat.bits || dat.amount || 0); }
+                else if (typ === 'raid') { addRaid(user, dat.viewers || 0); }
+            }
+
+            if (src === 'tiktok') {
+                if (typ === 'follow') { addFollower(user); }
+                else if (typ === 'like') { addTTLike(dat.likeCount || dat.amount || 1); }
+                else if (typ === 'gift') { addTTGift(user, dat.count || dat.quantity || 1); }
+                else if (typ === 'sub') { addTTSub(user); }
+            }
+
+            // Optional: trigger credits via a custom broadcast
+            // if (src==='core' && typ==='runcredits') runCredits();
+        };
+    }
+    connectSB();
+
+    // ---------- Test UI ----------
+    document.getElementById('testUI').style.display = CONFIG.SHOW_TEST_UI ? 'flex' : 'none';
+    if (CONFIG.SHOW_TEST_UI) {
+        document.querySelectorAll('.testbtn').forEach(b => {
+            b.addEventListener('click', () => {
+                const k = b.getAttribute('data-k');
+                if (k === 'follow') addFollower('datadyne');
+                if (k === 'sub') addSub('renova', 'T1');
+                if (k === 'prime') addSub('ionforge', 'PRIME');
+                if (k === 'gift') addGift('orichal', 5);
+                if (k === 'cheer') addCheer('zygnosis', 500);
+                if (k === 'raid') addRaid('nullhowl', 23);
+                if (k === 'like') addTTLike(1000);
+                if (k === 'tgift') addTTGift('sponsor', 3);
+                if (k === 'run') runCredits();
+                if (k === 'reset') { resetStore(); buildRoll(); }
+                buildRoll();
+            });
+        });
+    }
+
+    // Build initial (empty) roll
+    buildRoll();
+
+    // Optional: keyboard shortcuts
+    window.addEventListener('keydown', (e) => {
+        if (e.key.toLowerCase() === 'r') runCredits();
+        if (e.key.toLowerCase() === 'x') { resetStore(); buildRoll(); }
+    });
+</script>

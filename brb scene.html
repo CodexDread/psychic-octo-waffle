@@ -1,0 +1,175 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* Theme */
+    --fg: #7CFF7C;
+    --fg-dim: #57c957;
+    --accent: #FFBF4D;
+    --shadow: rgba(0, 0, 0, .35);
+    --font: "VT323", monospace;
+
+    /* Layout */
+    --pad: 12px;
+    --gap: 16px;
+    --side-w: 420px; /* right sidebar width (chat) */
+    --title-size: 64px;
+    --frame-border: 2px;
+
+    /* Guides: set to 0 to hide dashed boxes once aligned */
+    --guides: 1;
+  }
+
+  html, body {
+    height: 100%;
+    margin: 0;
+    background: transparent;
+  }
+
+  body {
+    color: var(--fg);
+    font-family: var(--font);
+    letter-spacing: .02em;
+    line-height: 1;
+    text-shadow: 0 0 6px var(--shadow), 0 0 12px var(--shadow);
+  }
+
+  .grid {
+    height: 100%;
+    display: grid;
+    gap: var(--gap);
+    padding: var(--pad);
+    box-sizing: border-box;
+    grid-template-columns: 1fr var(--side-w);
+    grid-template-rows: auto 1fr;
+  }
+
+  /* BRB Title (top-left) */
+  .brb-title {
+    grid-column: 1/2;
+    grid-row: 1;
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    white-space: nowrap;
+  }
+
+  .brb-title .label {
+    color: var(--accent);
+    font-size: 28px;
+  }
+
+  .brb-title .text {
+    font-size: var(--title-size);
+  }
+
+  /* Clips area (left) */
+  .clips {
+    grid-column: 1/2;
+    grid-row: 2;
+    display: grid;
+    place-items: center;
+  }
+
+  .clip-frame {
+    width: 100%;
+    aspect-ratio: 16/9; /* common for clips */
+    position: relative;
+    border: calc(var(--frame-border)*var(--guides)) dashed color-mix(in srgb, var(--fg-dim), transparent 20%);
+    box-shadow: inset 0 0 0 calc(1px*var(--guides)) rgba(124, 255, 124, .15);
+  }
+
+  .clip-frame::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      to bottom,
+      rgba(124, 255, 124, .05) 0,
+      rgba(124, 255, 124, .05) 1px,
+      transparent 2px,
+      transparent 3px
+    );
+  }
+
+  .hint {
+    position: absolute;
+    top: 6px;
+    left: 10px;
+    font-size: 18px;
+    color: var(--fg-dim);
+  }
+
+  /* Right sidebar: Chat lane */
+  .sidebar {
+    grid-column: 2/3;
+    grid-row: 1/3;
+    display: flex;
+    flex-direction: column;
+    border-left: calc(1px*var(--guides)) dashed var(--fg-dim);
+    padding-left: var(--pad);
+  }
+
+  .chat-title {
+    color: var(--accent);
+    font-size: 26px;
+    margin-bottom: 6px;
+  }
+
+  .chat-note {
+    color: var(--fg-dim);
+    font-size: 18px;
+  }
+
+  /* Optional mini-info row at the bottom of the clips area */
+  .info-row {
+    position: absolute;
+    right: 10px;
+    bottom: 8px;
+    font-size: 16px;
+    color: var(--fg-dim);
+  }
+</style>
+
+<div class="grid">
+
+  <!-- BRB Title -->
+  <div class="brb-title">
+    <div class="label">[ STATUS ]</div>
+    <div class="text">BE RIGHT BACK</div>
+  </div>
+
+  <!-- CLIPS: place a Browser Source behind and scale to this 16:9 box -->
+  <section class="clips">
+    <div class="clip-frame">
+      <div class="hint">[ Ionforge // Clips Feed ]</div>
+      <div class="info-row">set <span style="color:var(--accent)">--guides: 0</span> when aligned</div>
+      <!--
+        To embed a Twitch clip carousel via Browser Source instead of a separate source behind this overlay,
+        use an <iframe> and set the proper `parent` query param to your site/domain. Twitch requires HTTPS hosting.
+
+        Example (serve this file from https://yourdomain.com):
+        <iframe
+          src="https://clips.twitch.tv/embed?clip=ClipSlugHere&autoplay=true&muted=false&parent=yourdomain.com"
+          allowfullscreen
+          scrolling="no"
+          frameborder="0"
+          style="position:absolute;inset:0;width:100%;height:100%;border:0"></iframe>
+
+        For OBS local files, prefer placing your clips Browser Source BEHIND this overlay and scale to fit the frame.
+      -->
+    </div>
+  </section>
+
+  <!-- CHAT lane (right). Place your chat Browser Source behind this overlay or leave as reserved area. -->
+  <aside class="sidebar">
+    <div class="chat-title">[ CHAT ]</div>
+    <div class="chat-note"></div>
+  </aside>
+
+</div>
+<!-- subtle lore checksum: chk=B R B I O N F O R G E -->
+
