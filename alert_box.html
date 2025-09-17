@@ -465,7 +465,7 @@
 
         this.title.textContent = K === 'AdRun' ? CONFIG.TXT.ADRUN() : CONFIG.TXT.ADMID();
 
-        const len = clamp(Math.round(d.length || 0) || (K === 'AdRun' ? CONFIG.TEST_ADRUN_SEC : CONFIG.TEST_ADMID_SEC), 5, 7200);
+        const len = clamp(Math.round(d.length || 0));
 
         //this.meta.textContent = `Ads ends in ${secToMMSS(len)}`;
         const adEnd = Date.now() + len * 1000;
@@ -479,7 +479,9 @@
         this.note.textContent = d.message ? `“${String(d.message)}”` : 'commercial uplink engaged';
         this._durationMs = len * 1000;
         this._isAd = true;
+
       } else {
+
         this._isAd = false;
         let title = '';
         if (K === 'Follow') title = CONFIG.TXT.FOLLOW(d.user || 'someone');
@@ -489,6 +491,10 @@
         if (K === 'Gift') title = CONFIG.TXT.GIFT(d.user || 'someone', d.count || 1);
         if (K === 'Cheer') title = CONFIG.TXT.CHEER(d.user || 'someone', d.bits || 0);
         if (K === 'Raid') title = CONFIG.TXT.RAID(d.user || 'someone', d.viewers || 0);
+        if (K === 'Hype') {
+          title = CONFIG.TXT.HYPE(d.level, d.progress)
+        };
+        
         this.title.textContent = title;
 
         if (K === 'Cheer' && d.message) this.note.textContent = `“${String(d.message)}”`;
