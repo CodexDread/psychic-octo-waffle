@@ -1,0 +1,39 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+<head>
+  <script type="text/javascript"
+    src="https://cdn.jsdelivr.net/npm/@streamerbot/client/dist/streamerbot-client.js"></script>
+</head>
+<style>
+    :root{
+  --fg:#7CFF7C; --fg-dim:#57c957; --accent:#FFBF4D; --shadow:rgba(0,0,0,.35);
+  --size:40px; --gap:24px;
+}
+html,body{background:transparent;margin:0}
+.vt{
+  font-family:"VT323", monospace; color:var(--fg); font-size:var(--size);
+  text-shadow:0 0 6px var(--shadow),0 0 12px var(--shadow); letter-spacing:.02em;
+  display:flex; gap:var(--gap); align-items:center; white-space:nowrap;
+}
+.stat{display:flex; gap:8px}
+.k{color:var(--accent)} .v{color:var(--fg)}
+
+</style>
+<div id="stats" class="vt">
+  <span class="stat"><span class="k">[ UPTIME ]</span><span class="v" id="stat-uptime">00:00:00</span></span>
+  <span class="stat"><span class="k">[ FOLLOWERS ]</span><span class="v" id="stat-followers">—</span></span>
+  <span class="stat"><span class="k">[ SUBS ]</span><span class="v" id="stat-subs">—</span></span>
+</div>
+
+<script>
+    //Connect to Streamer.bot Instance
+  const client = new StreamerbotClient({
+    logLevel: 'debug',
+    onConnect: (payload) => {
+      console.log('Streamer.bot Instance', payload);
+    }
+  });
+
+</script>
