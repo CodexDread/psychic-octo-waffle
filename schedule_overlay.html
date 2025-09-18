@@ -40,7 +40,7 @@ html,body{ margin:0; background:transparent; }
 }
 .day{
   border:1px dashed var(--border); background:rgba(0,0,0,.65);
-  color:var(--accent); font-size:20px; text-align:center; padding:8px 10px;
+  color:var(--accent); font-size:40px; text-align:center; padding:8px 10px;
   display:flex; align-items:center; justify-content:center;
 }
 .cards{
@@ -57,10 +57,10 @@ html,body{ margin:0; background:transparent; }
 }
 /* Text lines */
 .game{
-  color:var(--fg); font-size:26px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-align:center;
+  color:var(--fg); font-size:36px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-align:center;
 }
 .time{
-  color:var(--fg-dim); text-align:center; font-size:20px; min-height:20px;
+  color:var(--fg-dim); text-align:center; font-size:22px; min-height:20px;
   margin-top:auto; /* push time to bottom for nice vertical rhythm */
 }
 
@@ -120,17 +120,17 @@ const CONFIG = {
   DAYS: ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],
   // Each day may have multiple slots; text only (no images)
   SCHEDULE: {
-    Mon: [{ time: "8:30 PM – 11:30 PM", game: "Minecraft" }],
-    Tue: [{ time: "8:30 PM - 11:30 PM", game: "Minecraft" }],
-    Wed: [{ time: "OFFLINE", game: "" }],
+    Mon: [{ time: "9:00 PM - 12:00 AM", game: "Borderlands 4" }],
+    Tue: [{ time: "OFFLINE", game: "" }],
+    Wed: [{ time: "9:00 PM - 12:00 AM", game: "The Finals" }],
     Thu: [{ time: "OFFLINE", game: "" }],
-    Fri: [{ time: "9:00 PM – 3:00 AM", game: "Minecraft" }],
-    Sat: [{ time: "11:00 AM - 3:00 PM", game: "Dragon's Dogma Online" }],
+    Fri: [{ time: "9:00 PM - 3:00 AM", game: "Borderlands 4" }],
+    Sat: [{ time: "11:00 AM - 3:00 PM", game: "BeamNG.Drive" }],
     Sun: [{ time: "OFFLINE", game: "" }]
   },
 
   // (Optional) override label in header; null = inferred from first non-offline slot
-  GAME_OF_WEEK: "Minecraft",
+  GAME_OF_WEEK: "Borderlands 4",
 
   // Layout: equal-width cards per row; set to false for natural widths
   EQUAL_WIDTH_CARDS: true
