@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <!doctype html>
 <meta charset="utf-8" />
 <meta http-equiv="Cache-Control" content="no-cache" />
@@ -285,3 +286,292 @@ document.getElementById('btnSave').addEventListener('click', async ()=>{
   build();
 })();
 </script>
+=======
+<!doctype html>
+<meta charset="utf-8" />
+<meta http-equiv="Cache-Control" content="no-cache" />
+<link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+<style>
+:root{
+  --bg:#050705; --fg:#7CFF7C; --fg-dim:#57c957; --accent:#FFBF4D; --border:#2d3a2d;
+  --font:"VT323", monospace;
+  --w:1080px; --h:1080px; /* square export */
+}
+*{ box-sizing:border-box; }
+html,body{ margin:0; background:transparent; }
+#stage{
+  width:var(--w); height:var(--h); margin:0 auto;
+  background:var(--bg); color:var(--fg); font:24px var(--font); letter-spacing:.02em;
+  display:flex; flex-direction:column; gap:14px; padding:20px;
+}
+.header{
+  display:flex; align-items:flex-end; justify-content:space-between; gap:12px;
+  border:1px dashed var(--fg-dim); padding:10px 12px; position:relative;
+}
+.header .title{ font-size:44px; line-height:1; }
+.header .meta{ color:var(--fg-dim); display:flex; gap:18px; align-items:center; }
+.badge{ border:1px dashed var(--accent); color:var(--accent); padding:2px 8px; font-size:20px; }
+
+/* ===== Horizontal rows: 7 rows, 1 column ===== */
+.grid{
+  display:grid; gap:10px;
+  grid-template-rows: repeat(7, 1fr);
+  grid-template-columns: 1fr;
+  flex:1; min-height:0; /* fill between header & footer */
+}
+
+/* Each row: [Day] | [Cards] */
+.row{
+  display:grid; grid-template-columns: 140px 1fr; gap:10px;
+  min-width:0; min-height:0;
+}
+.day{
+  border:1px dashed var(--border); background:rgba(0,0,0,.65);
+  color:var(--accent); font-size:40px; text-align:center; padding:8px 10px;
+  display:flex; align-items:center; justify-content:center;
+}
+.cards{
+  height:100%;
+  display:flex; flex-direction:row; gap:10px; min-width:0; min-height:0;
+}
+/* Equal-width cards across the row (remove .stretch to disable) */
+.cards.stretch > .card{ flex:1 1 0; }
+
+.card{
+  border:1px dashed var(--border); background:rgba(0,0,0,.85);
+  display:flex; flex-direction:column; gap:8px; padding:12px;
+  height:100%; min-width:0; /* allow shrink inside row */
+}
+/* Text lines */
+.game{
+  color:var(--fg); font-size:36px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-align:center;
+}
+.time{
+  color:var(--fg-dim); text-align:center; font-size:22px; min-height:20px;
+  margin-top:auto; /* push time to bottom for nice vertical rhythm */
+}
+
+/* Footer / controls */
+.footer{
+  display:flex; align-items:center; justify-content:space-between; gap:10px; color:var(--fg-dim);
+  border:1px dashed var(--border); padding:8px 10px;
+}
+.footer .left{ display:flex; gap:12px; align-items:center; }
+.footer .right{ display:flex; gap:10px; align-items:center; }
+.btn{
+  font:20px var(--font); color:var(--fg);
+  background:rgba(0,0,0,.85); border:1px dashed var(--fg-dim); padding:6px 10px; cursor:pointer;
+}
+.btn:hover{ background:rgba(0,0,0,.95) }
+.mono{ font:inherit; }
+.glow{
+  text-shadow:
+    0 0 3px currentColor,
+    0 0 8px currentColor,
+    0 0 14px currentColor;
+}
+</style>
+
+<div id="stage">
+  <div class="header">
+    <div class="title glow" id="title">WEEKLY SCHEDULE</div>
+    <div class="meta">
+      <div class="badge glow" id="weekLabel">week of —</div>
+      <div class="mono glow" id="gameOfWeek">game: —</div>
+      <div class="mono" id="tzLabel"></div>
+    </div>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="footer">
+    <div class="left">
+      <span class="mono">nh://sched</span>
+      <span class="mono">chk=N U L L H O W L</span>
+    </div>
+    <div class="right">
+      <button class="btn" id="btnSave">Download PNG</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===================== CONFIG (edit me) ===================== */
+const CONFIG = {
+  CANVAS: { width: 1080, height: 1080 },     // export size (square)
+  TITLE: "WEEKLY SCHEDULE",
+  WEEK_OF: null,           // e.g., "2025-09-01"; null = auto to start-of-week
+  WEEK_START: "Mon",       // "Mon" | "Sun"
+  TIMEZONE_LABEL: "CDT",
+
+  DAYS: ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],
+  // Each day may have multiple slots; text only (no images)
+  SCHEDULE: {
+    Mon: [{ time: "9:00 PM - 12:00 AM", game: "Borderlands 4" }],
+    Tue: [{ time: "OFFLINE", game: "" }],
+    Wed: [{ time: "9:00 PM - 12:00 AM", game: "The Finals" }],
+    Thu: [{ time: "OFFLINE", game: "" }],
+    Fri: [{ time: "9:00 PM - 3:00 AM", game: "Borderlands 4" }],
+    Sat: [{ time: "11:00 AM - 3:00 PM", game: "BeamNG.Drive" }],
+    Sun: [{ time: "OFFLINE", game: "" }]
+  },
+
+  // (Optional) override label in header; null = inferred from first non-offline slot
+  GAME_OF_WEEK: "Borderlands 4",
+
+  // Layout: equal-width cards per row; set to false for natural widths
+  EQUAL_WIDTH_CARDS: true
+};
+/* =========================================================== */
+
+const el = {
+  stage: document.getElementById('stage'),
+  grid: document.getElementById('grid'),
+  title: document.getElementById('title'),
+  weekLabel: document.getElementById('weekLabel'),
+  gameOfWeek: document.getElementById('gameOfWeek'),
+  tz: document.getElementById('tzLabel'),
+  btnSave: document.getElementById('btnSave')
+};
+
+// Apply canvas size
+document.documentElement.style.setProperty('--w', CONFIG.CANVAS.width + 'px');
+document.documentElement.style.setProperty('--h', CONFIG.CANVAS.height + 'px');
+
+// Header text
+el.title.textContent = CONFIG.TITLE;
+el.tz.textContent = `[ ${CONFIG.TIMEZONE_LABEL} ]`;
+
+const TZ = (CONFIG && CONFIG.TIMEZONE) || 'America/Chicago'; // optional override
+const WEEK_START = (CONFIG && CONFIG.WEEK_START) || 'Mon';   // 'Mon' or 'Sun'
+
+// Week label (auto start-of-week)
+/*
+function startOfWeek(d, start="Mon"){
+  const dt = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const day = dt.getDay(); // 0=Sun..6=Sat
+  const startIdx = start==="Sun" ? 0 : 1;
+  const diff = (day - startIdx + 7) % 7;
+  dt.setDate(dt.getDate() - diff);
+  dt.setHours(0,0,0,0);
+  return dt;
+}
+const weekStart = CONFIG.WEEK_OF ? new Date(CONFIG.WEEK_OF) : startOfWeek(new Date(), CONFIG.WEEK_START);
+el.weekLabel.textContent = `week of ${weekStart.toLocaleDateString()}`;
+*/
+// Game of week label
+function inferGameOfWeek(){
+  if (CONFIG.GAME_OF_WEEK) return CONFIG.GAME_OF_WEEK;
+  for (const d of CONFIG.DAYS){
+    const slots = CONFIG.SCHEDULE[d]||[];
+    for (const s of slots){
+      if (s && s.game && s.game.trim() && !/offline/i.test(s.time||"")) return s.game.trim();
+    }
+  }
+  return "—";
+}
+el.gameOfWeek.textContent = `game: ${inferGameOfWeek()}`;
+
+// ----- Helpers -----
+function nowInTZ(tz) {
+  // Creates a Date representing "now" in the given IANA timezone
+  // by parsing a localized string back into a Date.
+  return new Date(new Date().toLocaleString('en-US', { timeZone: tz }));
+}
+
+// Start-of-week where start = 'Mon' or 'Sun'
+function startOfWeek(d, start = 'Mon') {
+  const dt = new Date(d.getFullYear(), d.getMonth(), d.getDate()); // strip time
+  const day = dt.getDay(); // 0=Sun..6=Sat
+  const startIdx = start === 'Sun' ? 0 : 1; // Monday=1
+  const diff = (day - startIdx + 7) % 7;
+  dt.setDate(dt.getDate() - diff);
+  dt.setHours(0, 0, 0, 0);
+  return dt;
+}
+
+// ----- Compute week label -----
+// If CONFIG.WEEK_OF is provided, it's authoritative (no Sunday bump).
+const base = (CONFIG && CONFIG.WEEK_OF) ? new Date(CONFIG.WEEK_OF) : nowInTZ(TZ);
+
+// Monday start by default
+let weekStart = startOfWeek(base, WEEK_START);
+
+// If we're auto-generating on a Sunday for the *upcoming* Monday–Sunday,
+// bump the label one week ahead (only when WEEK_START is Monday and WEEK_OF not set).
+if ((!CONFIG || !CONFIG.WEEK_OF) && WEEK_START === 'Mon' && base.getDay() === 0) {
+  weekStart.setDate(weekStart.getDate() + 7);
+}
+
+// Format: "week of Sep 8, 2025" (localize as you like)
+const label = weekStart.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+el.weekLabel.textContent = `week of ${label}`;
+
+// DOM helper
+function h(tag, cls, txt){ const n=document.createElement(tag); if(cls) n.className=cls; if(txt!=null) n.textContent=txt; return n; }
+
+function build(){
+  el.grid.innerHTML='';
+  for (const day of CONFIG.DAYS){
+    const row = h('div','row');
+    row.appendChild(h('div','day glow', day));
+
+    const deck = h('div','cards' + (CONFIG.EQUAL_WIDTH_CARDS ? ' stretch':''));
+    const slots = CONFIG.SCHEDULE[day]||[];
+
+    if (!slots.length){
+      deck.appendChild(blankCard());
+    } else {
+      for (const s of slots){ deck.appendChild(cardFor(s)); }
+    }
+    row.appendChild(deck);
+    el.grid.appendChild(row);
+  }
+}
+
+function blankCard(){
+  const c = h('div','card');
+  c.appendChild(h('div','game glow','—'));
+  c.appendChild(h('div','time',''));
+  return c;
+}
+function cardFor(slot){
+  const c = h('div','card');
+  const gname = (slot.game||'').trim();
+  const time = (slot.time||'').trim();
+  c.appendChild(h('div','game glow', gname || '—'));
+  c.appendChild(h('div','time', time || ''));
+  return c;
+}
+
+/* Download as PNG */
+document.getElementById('btnSave').addEventListener('click', async ()=>{
+  const controls = document.querySelector('.footer .right');
+  const prev = controls.style.display; controls.style.display = 'none';
+  await new Promise(r=>setTimeout(r,50));
+
+  html2canvas(document.getElementById('stage'), { useCORS:true, backgroundColor:null, scale:1 })
+    .then(canvas=>{
+      const link = document.createElement('a');
+      //link.download = 'stream-schedule-1080.png';
+      const y = weekStart.getFullYear(),
+            m = String(weekStart.getMonth()+1).padStart(2,'0'),
+            d = String(weekStart.getDate()).padStart(2,'0');
+      const stamp = `${y}-${m}-${d}`;
+      link.download = `stream-schedule-week-of-${stamp}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    })
+    .finally(()=>{ controls.style.display = prev; });
+});
+
+/* Init */
+(function init(){
+  document.getElementById('title').textContent = CONFIG.TITLE;
+  document.getElementById('tzLabel').textContent = `[ ${CONFIG.TIMEZONE_LABEL} ]`;
+  build();
+})();
+</script>
+>>>>>>> 0af753d5aba0dce853ccceadb0cfc2322b3396d8
