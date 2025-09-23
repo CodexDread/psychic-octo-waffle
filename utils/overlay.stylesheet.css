@@ -1,0 +1,102 @@
+/* Overlay Kit v1 — shared theme + utilities (VT323, DOS/Unix vibe)
+   Borders are 1px dashed. Glow uses currentColor. No scanlines by default. */
+:root{
+  --bg:#050705; --fg:#7CFF7C; --fg-dim:#57c957; --accent:#FFBF4D; --border:#2d3a2d;
+  --font:"VT323", monospace;
+  --pad:12px; --gap:16px;
+}
+
+html, body{
+  margin:0;
+  background:transparent;
+  color:var(--fg);
+  font-family:var(--font);
+  letter-spacing:.02em;
+  line-height:1;
+}
+
+/* Glow always matches text color */
+.u-glow{
+  text-shadow:
+    0 0 3px currentColor,
+    0 0 8px currentColor,
+    0 0 14px currentColor;
+}
+
+/* Panels & cards */
+[data-ui~="panel"]{
+  border:1px dashed var(--border);
+  background:rgba(0,0,0,.75);
+  padding:var(--pad);
+}
+[data-ui~="card"]{
+  border:1px dashed var(--border);
+  background:rgba(0,0,0,.85);
+  padding:12px;
+  border-radius:8px;
+}
+
+/* Chips / badges / labels / rules */
+[data-ui~="chip"]{
+  border:1px dashed var(--accent);
+  color:var(--accent);
+  padding:2px 8px;
+  font-size:20px;
+}
+[data-ui~="label"]{ color:var(--accent); }
+[data-ui~="rule"]{ color:var(--fg-dim); opacity:.85; }
+
+/* Frames + aspect helpers */
+[data-ui~="frame"]{
+  position:relative;
+  border:1px dashed var(--border);
+  box-shadow: inset 0 0 0 1px rgba(124,255,124,.15);
+}
+[data-aspect="21:9"]{ aspect-ratio:21 / 9; }
+[data-aspect="16:9"]{ aspect-ratio:16 / 9; }
+[data-aspect="4:3"] { aspect-ratio: 4 / 3; }
+
+/* Grid helpers */
+.u-grid{ display:grid; gap:var(--gap); padding:var(--pad); box-sizing:border-box; }
+.u-row{ display:flex; gap:var(--gap); align-items:flex-start; }
+.u-col{ display:flex; flex-direction:column; gap:var(--gap); }
+
+/* Type scale */
+.t-xs{ font-size:16px; } .t-sm{ font-size:18px; } .t-md{ font-size:22px; }
+.t-lg{ font-size:28px; } .t-xl{ font-size:36px; } .t-2xl{ font-size:44px; }
+
+/* Optional scanlines (OFF unless you add .u-scan-on to a parent) */
+.u-scan{ position:relative; }
+.u-scan::after{
+  content:""; position:absolute; inset:0; pointer-events:none; opacity:.7; display:none;
+  background:repeating-linear-gradient(
+    to bottom,
+    rgba(124,255,124,.06) 0,
+    rgba(124,255,124,.06) 1px,
+    transparent 2px,
+    transparent 3px
+  );
+}
+.u-scan-on .u-scan::after{ display:block; }
+
+/* Data-driven bars */
+[data-ui~="bar"]{
+  height:6px;
+  background:rgba(0,0,0,.5);
+  border:1px dashed var(--border);
+  position:relative;
+  overflow:hidden;
+}
+[data-ui~="bar"] > .fill{
+  position:absolute; left:0; top:0; bottom:0; width:0%;
+  background:var(--accent);
+  box-shadow:0 0 8px currentColor;
+}
+
+/* Utility */
+.hidden{ display:none !important; }
+
+/* Respect reduced motion when you implement CSS transitions */
+@media (prefers-reduced-motion: reduce){
+  *{ transition:none !important; animation:none !important; }
+}
