@@ -1,5 +1,5 @@
 // Overlay Kit v1 — Data-tagged animations & effects (no external deps)
-const { query, array, Bus, clamp } = window.onafterprintverlayKit;
+const { query, array, Bus, clamp } = window.overlayKit;
 
 // Per-char scrambler (used by titles/labels)
 const POOL = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_<>/\\|#%$*";
