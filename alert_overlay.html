@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="Cache-Control" content="no-cache">
+        <title></title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+        
+        <script src="https://unpkg.com/three@0.155.0/build/three.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+       
+        <script src="./utils/overlay.utils.js"></script>
+        <script SRC="./utils/overlay.stylesheet.css"></script>
+        <script src="./utils/overlay.animations.js"></script>
+        <script src="./utils/overlay.sb.js"></script>
+    </head>
+        <script type="text/javascript"
+            src="https://cdn.jsdelivr.net/npm/@streamerbot/client/dist/streamerbot-client.js"></script>
+    <body>
+        <div id="sb-status">[ no active streamer.bot instances ]</div>
+        <div id="stack"></div>
+
+        <script type="text/javascript">
+            const cfg = window.overlayConfig;
+            const config = cfg?.ALERTS || {};
+            
+            let isSBConnected = false;
+
+            overlayKit.Bus.on('sb:connected', (e) => {
+                isSBConnected = !!(e.detail && e.detail.ok);
+
+                const dot = document.getElementById('sb-status');
+            });
+
+            function oneOf(...opts) { return opts[Math.floor(Math.random() * opts.length)]; }
+            
+            const TXT = { // Text fillers for alerts
+                FOLLOW: (u) => oneOf(
+                    `Uplink handshake complete: ${u}`,
+                    `Node joined mesh: ${u}  // NH:SYNC`,
+                    `Access key registered → ${u}`
+                ),
+
+                PRIME: (u) => oneOf(
+                    `Prime route established: ${u}`,
+                    `Renova.priority grant: ${u}`,
+                    `Crown key validated (Prime): ${u}`
+                ),
+
+                TIER: (u, t) => oneOf(
+                    `Service level ${t} online: ${u}`,
+                    `Ionforge retainer ${t} secured: ${u}`,
+                    `Contract ${t} executed → ${u}`
+                ),
+
+                RESUB: (u, m) => oneOf(
+                    `Continuity ${m} cycles: ${u}`,
+                    `Contract rollover (${m}m): ${u}`,
+                    `SLA renewal ${m}m — ${u}`
+                ),
+
+                GIFT: (u, c) => oneOf(
+                    `Bulk keys dispatched ×${c} by ${u}`,
+                    `Orichal airdrop ×${c} — issuer: ${u}`,
+                    `Grant bundle ×${c} in ${u}’s name`
+                ),
+
+                CHEER: (u, b) => oneOf(
+                    `Signal boost +${b}μ: ${u}`,
+                    `Ion credits +${b} issued to channel`,
+                    `Tipstream +${b} — from ${u}`
+                ),
+
+                RAID: (u, v) => oneOf(
+                    `Allied convoy +${v} — ${u}`,
+                    `Incursion detected +${v}: ${u}`,
+                    `Backtrace linked: ${u} leading +${v}`
+                ),
+
+                ADRUN: () => oneOf(
+                    `Commercial uplink engaged  // DataDyne`,
+                    `Sponsor relay: line open`,
+                    `Ad channel: sync & broadcast`,
+                    `DataDyne interlude: standby`
+                ),
+            };
+
+
+        </script>
+    </body>
+</html>

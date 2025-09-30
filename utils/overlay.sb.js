@@ -1,10 +1,10 @@
 
 const { Bus } = window.overlayKit;
-const conn = false;
+const connected = false;
 
 function setConnection(ok){
-    conn = ok;
-    Bus.emit('sb:conn', { ok });
+    connected = ok;
+    Bus.emit('sb:connected', { ok });
  }
 
  //Connect to Streamer.bot Instance

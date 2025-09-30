@@ -1,0 +1,440 @@
+<!doctype html>
+<meta charset="utf-8" />
+<link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --fg: #7CFF7C;
+        --fgd: #57c957;
+        --acc: #FFBF4D;
+        --glow: rgba(124, 255, 124, .55);
+        --fs: 28px;
+    }
+
+    html,
+    body {
+        margin: 0;
+        height: 100%;
+        background: transparent;
+        color: var(--fg);
+        font: var(--fs) "VT323", monospace;
+        letter-spacing: .02em;
+        overflow: hidden;
+        text-shadow: 0 0 6px var(--glow), 0 0 14px var(--glow);
+    }
+
+    /* ===== OPAQUE COVER (fixed + opacity-driven) ===== */
+    #cover {
+        position: fixed;
+        /* always fill viewport in OBS */
+        inset: 0;
+        background-color: #000;
+        /* solid; we control alpha via opacity */
+        opacity: 0;
+        /* start transparent */
+        transition: opacity .35s ease;
+        z-index: 10;
+        /* under code, over scene */
+    }
+
+    .scan {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        opacity: .7;
+        background: repeating-linear-gradient(to bottom,
+                rgba(124, 255, 124, .06) 0,
+                rgba(124, 255, 124, .06) 1px,
+                transparent 2px,
+                transparent 3px);
+    }
+
+    /* launcher bar (top layer initially) */
+    #barWrap {
+        position: absolute;
+        left: 50%;
+        top: 16%;
+        transform: translate(-50%, -50%);
+        width: min(62vw, 1100px);
+        z-index: 30
+    }
+
+    #bar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px 18px;
+        background: rgba(0, 0, 0, .78);
+        border: 1px dashed #57c957;
+        box-shadow: inset 0 0 0 1px rgba(124, 255, 124, .25), 0 0 18px rgba(0, 0, 0, .55)
+    }
+
+    #prompt {
+        color: var(--fgd);
+        font-size: 22px
+    }
+
+    #cmd {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: clip;
+        min-height: 1em
+    }
+
+    #cursor {
+        display: inline-block;
+        width: 10px;
+        background: var(--fg);
+        animation: blink 1s steps(1, end) infinite
+    }
+
+    #chip {
+        position: absolute;
+        top: 8px;
+        left: 12px;
+        color: var(--fgd);
+        font-size: 20px
+    }
+
+    @keyframes blink {
+        50% {
+            opacity: 0
+        }
+    }
+
+    .hidden {
+        opacity: 0;
+        transform: translateY(8px);
+        transition: opacity .18s, transform .18s
+    }
+
+    .visible {
+        opacity: 1;
+        transform: none;
+        transition: opacity .18s, transform .18s
+    }
+
+    /* code wall + amber sidebar (middle layer) */
+    #code {
+        position: absolute;
+        inset: 0;
+        padding: 5vh 7vw;
+        opacity: 0;
+        transition: opacity .18s ease;
+        z-index: 20
+    }
+
+    #code::before {
+        content: "";
+        position: absolute;
+        left: calc(7vw - 18px);
+        top: 5vh;
+        bottom: 5vh;
+        width: 6px;
+        background: var(--acc);
+        box-shadow: 0 0 10px rgba(255, 191, 77, .45);
+        transform-origin: bottom left;
+        transform: scaleY(1);
+        transition: transform var(--drainMs, 600ms) ease-out, opacity .18s ease;
+    }
+
+    #code.drain::before {
+        transform: scaleY(0);
+        opacity: 0;
+    }
+
+    /* code lines */
+    .line {
+        opacity: 0;
+        transform: translateY(6px);
+        transition: opacity .18s, transform .18s
+    }
+
+    .line.in {
+        opacity: 1;
+        transform: none
+    }
+
+    .line.out {
+        opacity: 0;
+        transform: translateY(6px);
+        transition: opacity .12s, transform .12s
+    }
+
+    .time {
+        color: var(--fgd);
+        opacity: .85;
+        margin-right: .5ch
+    }
+
+    .tag {
+        color: var(--acc)
+    }
+
+    .muted {
+        color: var(--fgd);
+        opacity: .95
+    }
+
+    /* glitch */
+    .glitch-in {
+        animation: rgbSplit .55s steps(10) both, jitter .55s steps(10) both
+    }
+
+    .glitch-out {
+        animation: rgbSplit .40s steps(8) reverse both, jitter .40s steps(8) reverse both
+    }
+
+    @keyframes rgbSplit {
+        0% {
+            filter: none
+        }
+
+        20% {
+            filter: drop-shadow(2px 0 0 rgba(255, 0, 0, .35)) drop-shadow(-2px 0 0 rgba(0, 128, 255, .35))
+        }
+
+        40% {
+            filter: drop-shadow(-2px 0 0 rgba(255, 0, 0, .35)) drop-shadow(2px 0 0 rgba(0, 128, 255, .35))
+        }
+
+        60% {
+            filter: drop-shadow(3px 0 0 rgba(255, 0, 0, .30)) drop-shadow(-3px 0 0 rgba(0, 128, 255, .30))
+        }
+
+        80% {
+            filter: drop-shadow(-1px 0 0 rgba(255, 0, 0, .30)) drop-shadow(1px 0 0 rgba(0, 128, 255, .30))
+        }
+
+        100% {
+            filter: none
+        }
+    }
+
+    @keyframes jitter {
+        0% {
+            transform: translate(0, 0)
+        }
+
+        20% {
+            transform: translate(-1px, 0)
+        }
+
+        40% {
+            transform: translate(1px, 0)
+        }
+
+        60% {
+            transform: translate(-2px, 0)
+        }
+
+        80% {
+            transform: translate(2px, 0)
+        }
+
+        100% {
+            transform: none
+        }
+    }
+</style>
+
+<div id="cover">
+    <div id="scan" class="scan"></div>
+</div>
+
+<div id="barWrap" class="hidden">
+    <div id="bar">
+        <div id="prompt">run&gt;</div>
+        <div id="cmd"></div>
+        <div id="cursor"></div>
+    </div>
+    <div id="chip">[ COMMANDLET RUN ]</div>
+</div>
+
+<div id="code" aria-hidden="true"></div>
+
+<script>
+    (() => { // =================== CONFIG ===================
+        const CONFIG = {
+            DEBUG: false,                    // true to log to console
+            CMD: 'run: exec NULLHOWL.exe /handoff /SceneLoad',
+
+            // Cover + visuals
+            COVER_OPACITY: 1,             // 0..1 — opacity of the black cover
+            SHOW_SCANLINES: true,            // toggle scanline overlay on the cover
+
+            // Launcher typing + entrance
+            BAR_GLITCH_IN_MS: 350,           // glitch-in dur for the run bar
+            TYPE_CHAR_MS: 26,                // ms per typed character
+
+            // Code-wall runtime + cadence
+            MIN_CODE_RUN_MS: 2000,           // minimum run time before unload can start
+            LINE_CADENCE_MS: 60,             // time between generated lines (smaller = faster fill)
+
+            // Unload (bottom-up)
+            UNLOAD_STEP_MS: 30,              // delay between starting each line’s unload (bottom->top)
+            UNLOAD_SCRAMBLE_MS: 140,         // scramble-out duration per line
+
+            // Amber sidebar drain timing will auto-scale to the total unload time
+        };
+        // ====================================================
+
+        const DEBUG = CONFIG.DEBUG;
+        const logc = (...a) => DEBUG && console.log('[STINGER]', ...a);
+        const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+        // ===== DOM =====
+        const el = {
+            cover: document.getElementById('cover'),
+            scan: document.getElementById('scan'),
+            barW: document.getElementById('barWrap'),
+            bar: document.getElementById('bar'),
+            cmd: document.getElementById('cmd'),
+            cur: document.getElementById('cursor'),
+            chip: document.getElementById('chip'),
+            code: document.getElementById('code')
+        };
+
+        // Robust cover: drive element opacity (works reliably in OBS/CEF)
+        function setCover(on) {
+            el.cover.style.opacity = on ? String(Math.max(0, Math.min(1, CONFIG.COVER_OPACITY))) : '0';
+            if (DEBUG) logc('cover', on ? 'ON' : 'OFF', 'opacity=', el.cover.style.opacity);
+        }
+        el.scan.style.display = CONFIG.SHOW_SCANLINES ? 'block' : 'none';
+
+        // ===== Scrambler =====
+        const POOL = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_<>/\\|#%$*";
+        function scrambleTo(node, text, dur = 420) {
+            const prev = node.textContent || "", len = Math.max(prev.length, text.length);
+            const ticks = Math.max(10, Math.round(dur / 16));
+            const q = Array.from({ length: len }, (_, i) => {
+                const from = prev[i] || "", to = text[i] || "";
+                const start = Math.floor(Math.random() * Math.min(10, ticks * 0.2));
+                const end = start + Math.floor(ticks * 0.6) + Math.floor(Math.random() * 10);
+                return { from, to, start, end, ch: "" };
+            });
+            let t = 0;
+            return new Promise(res => {
+                function tick() {
+                    let out = "", done = 0;
+                    for (const s of q) {
+                        if (t >= s.end) { out += s.to; done++ }
+                        else if (t >= s.start) { s.ch = POOL[(Math.random() * POOL.length) | 0]; out += s.ch }
+                        else out += s.from;
+                    }
+                    node.textContent = out;
+                    if (done === q.length) return res();
+                    t++; requestAnimationFrame(tick);
+                }
+                tick();
+            });
+        }
+
+        // ===== Line building =====
+        const T = () => new Date().toISOString().slice(11, 19);
+        function mkLine(full) {
+            const d = document.createElement('div'); d.className = 'line'; let rest = full;
+            const time = document.createElement('span'); time.className = 'time';
+            if (rest.startsWith('[')) { const i1 = rest.indexOf(']'); if (i1 > 0) { time.textContent = rest.slice(0, i1 + 1); rest = rest.slice(i1 + 1).trim(); } else time.textContent = '[00:00:00]'; }
+            else time.textContent = '[00:00:00]';
+            const tag = document.createElement('span'); tag.className = 'tag';
+            if (rest.startsWith('[')) { const i2 = rest.indexOf(']'); if (i2 > 0) { tag.textContent = rest.slice(0, i2 + 1); rest = rest.slice(i2 + 1).trim(); } }
+            const body = document.createElement('span'); body.className = 'muted'; body.textContent = rest.length ? (' ' + rest) : '';
+            d.append(time, tag, body); return d;
+        }
+        function computeMaxLines() {
+            const avail = window.innerHeight * 0.90;
+            const probe = mkLine(`[00:00:00] [sys] probe`);
+            probe.style.visibility = 'hidden'; probe.classList.add('in'); el.code.appendChild(probe);
+            const lh = probe.getBoundingClientRect().height || parseInt(getComputedStyle(document.body).lineHeight) || 32;
+            el.code.removeChild(probe); return Math.max(3, Math.floor(avail / lh));
+        }
+        function addLine(text) {
+            if (!addLine._max) addLine._max = computeMaxLines();
+            const d = mkLine(`[${T()}] ${text}`); el.code.appendChild(d);
+            while (el.code.children.length > addLine._max) { el.code.removeChild(el.code.firstChild); }
+            requestAnimationFrame(() => d.classList.add('in'));
+        }
+        window.addEventListener('resize', () => { addLine._max = computeMaxLines(); });
+
+        // ===== Code stream =====
+        const ACRO = ["[null] NULLHOWL vector engaged", "[net]  Network uplink locked", "[usr]  Userspace ready",
+            "[lat]  Latency nominal", "[mem]  Heap clean", "[orc]  Orchestrator ready", "[wdg]  Watchdogs green", "[log]  Logs rolling"];
+        const FILL = ["[sys] init kernel: ionforge v3.7 … ok", "[io]  mount capture bus … ok", "[gpu] compile orichal-vx shader pack … ok",
+            "[mix] audio graph prime … ok", "[net] renova uplink … 12ms", "[vm]  sandbox profile: SAFE-EXEC", "[sec] datadyne checksum … ok",
+            "[fs]  cache sync … ok", "[proc] spawn worker@render … ok", "[proc] spawn worker@encode … ok", "[null] howl-vector … ready"];
+
+        let addTimer = null;
+        function startCode(minRunMs) {
+            el.code.style.opacity = '1';
+            ACRO.forEach(addLine);
+            let i = 0, start = performance.now(), filled = false;
+            return new Promise(resolve => {
+                addTimer = setInterval(() => {
+                    addLine(FILL[i++ % FILL.length]);
+                    if (!filled && el.code.children.length >= addLine._max) filled = true;
+                    const elapsed = performance.now() - start;
+                    if (filled && elapsed >= minRunMs) { clearInterval(addTimer); addTimer = null; resolve(); }
+                }, CONFIG.LINE_CADENCE_MS);
+            }).then(stopCode);
+        }
+        async function stopCode() {
+            if (addTimer) { clearInterval(addTimer); addTimer = null; }
+            const lines = Array.from(el.code.children);
+            const totalDrain = (Math.max(0, lines.length - 1) * CONFIG.UNLOAD_STEP_MS) + CONFIG.UNLOAD_SCRAMBLE_MS + 120;
+            el.code.style.setProperty('--drainMs', `${totalDrain}ms`);
+            el.code.classList.add('drain');
+            const jobs = []; let delay = 0;
+            for (let i = lines.length - 1; i >= 0; i--) {
+                const line = lines[i], time = line.querySelector('.time'), tag = line.querySelector('.tag'), body = line.querySelector('.muted');
+                jobs.push((async (dly) => {
+                    await sleep(dly); line.classList.add('out');
+                    await Promise.all([
+                        time ? scrambleTo(time, "", CONFIG.UNLOAD_SCRAMBLE_MS) : Promise.resolve(),
+                        tag ? scrambleTo(tag, "", CONFIG.UNLOAD_SCRAMBLE_MS) : Promise.resolve(),
+                        body ? scrambleTo(body, "", CONFIG.UNLOAD_SCRAMBLE_MS) : Promise.resolve()
+                    ]);
+                })(delay));
+                delay += CONFIG.UNLOAD_STEP_MS;
+            }
+            await Promise.all(jobs);
+            el.code.innerHTML = ""; el.code.style.opacity = '0'; el.code.classList.remove('drain');
+        }
+
+        // ===== Typing =====
+        async function typeCmd(text) {
+            el.cmd.textContent = ""; el.cur.style.display = 'inline-block';
+            for (let i = 0; i < text.length; i++) { el.cmd.textContent += text[i]; await sleep(CONFIG.TYPE_CHAR_MS); }
+            el.cur.style.display = 'none';
+        }
+
+        // ===== Orchestrator =====
+        async function run() {
+            // reset
+            setCover(false);
+            el.barW.classList.replace('visible', 'hidden');
+            el.bar.classList.remove('glitch-in', 'glitch-out');
+            el.cmd.textContent = ""; el.cur.style.display = 'none';
+            el.code.innerHTML = ""; el.code.style.opacity = '0'; el.code.classList.remove('drain');
+            addLine._max = computeMaxLines();
+
+            // A) Launcher
+            el.barW.classList.replace('hidden', 'visible'); void el.bar.offsetWidth; el.bar.classList.add('glitch-in');
+            await sleep(CONFIG.BAR_GLITCH_IN_MS); await typeCmd(CONFIG.CMD); el.bar.classList.remove('glitch-in');
+
+            // B) Cover ON, then hide launcher
+            setCover(true);
+            await sleep(200);
+            el.bar.classList.add('glitch-out'); await sleep(160); el.barW.classList.replace('visible', 'hidden');
+
+            // C) Code wall (fills to bottom, then honors MIN_CODE_RUN_MS before unload)
+            el.code.style.opacity = '1'; await startCode(CONFIG.MIN_CODE_RUN_MS);
+
+            // D) Fade out to transparent
+            setCover(false);
+        }
+
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') run(); });
+        run();
+        window.addEventListener('click', () => run()); // for testing in a browser
+    })();
+</script>

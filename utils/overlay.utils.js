@@ -2,7 +2,18 @@
 // Global Configs
 window.overlayConfig = window.overlayConfig || {
     // Hold over from old websocket connection
-    SB: { HOST: '127.0.0.1', PORT: 8080, AUTO_CONNECT:true}
+    SB: { 
+        HOST: '127.0.0.1', 
+        PORT: 8080, 
+        AUTO_CONNECT:true
+    },
+    ALERTS: { 
+        MAX_STACK: 3, 
+        ALERT_LIFETIME_MS: 7000, 
+        SHOW_TIMER_BAR: true, 
+        BAR_POS: 'Top', 
+        BAR_THICKNESS: 10 
+    }
 };
 
 // DOM Helpers >> Research more

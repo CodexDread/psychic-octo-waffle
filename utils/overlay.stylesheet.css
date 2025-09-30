@@ -96,6 +96,9 @@ html, body{
 /* Utility */
 .hidden{ display:none !important; }
 
+/* Hide the indicator whenever it has the boolean [hidden] attribute */
+#sb-status[hidden] { display: none; }
+
 /* Respect reduced motion when you implement CSS transitions */
 @media (prefers-reduced-motion: reduce){
   *{ transition:none !important; animation:none !important; }
