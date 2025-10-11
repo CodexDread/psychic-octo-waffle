@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
     <head>
+        <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@streamerbot/client/dist/streamerbot-client.js"></script>
         <meta charset="utf-8">
         <meta http-equiv="Cache-Control" content="no-cache">
         <title></title>
@@ -12,27 +13,36 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
        
         <script src="./utils/overlay.utils.js"></script>
-        <script SRC="./utils/overlay.stylesheet.css"></script>
         <script src="./utils/overlay.animations.js"></script>
         <script src="./utils/overlay.sb.js"></script>
-    </head>
-        <script type="text/javascript"
-            src="https://cdn.jsdelivr.net/npm/@streamerbot/client/dist/streamerbot-client.js"></script>
+        <link rel="stylesheet" href="./utils/overlay.stylesheet.css"></link>
     <body>
         <div id="sb-status">[ no active streamer.bot instances ]</div>
         <div id="stack"></div>
 
         <script type="text/javascript">
+
             const cfg = window.overlayConfig;
             const config = cfg?.ALERTS || {};
+
+            const { Bus, clamp, mmss } = window.overlayKit; // from utils
+            const stackEl = document.getElementById('stack');
             
-            let isSBConnected = false;
+            const active = []; // Active que
+            const pending = []; // Pending que
+            
+            const sbBadge = document.getElementById('sb-status');
 
             overlayKit.Bus.on('sb:connected', (e) => {
-                isSBConnected = !!(e.detail && e.detail.ok);
-
-                const dot = document.getElementById('sb-status');
+                const ok = !!(e.detail?.ok);
+                sbBadge.hidden = ok; // hidden when connected
             });
+
+            // late-load check for sb connection
+            let gotReply = false;
+            Bus.addEventListener('sb:connected', () => { gotReply = true });
+            Bus.emit('sb:ping');
+            setTimeout(() => { if (!gotReply) sbBadge.hidden = false; }, 1200);
 
             function oneOf(...opts) { return opts[Math.floor(Math.random() * opts.length)]; }
             
@@ -87,6 +97,138 @@
                 ),
             };
 
+            function makeCard ({ title, meta='', note='', lifeMs }) {
+                const fallback = config?.ALERTS?.ALERT_LIFETIME_MS ?? 7000;
+                const life = Number.isFinite(lifeMs) ? lifeMs : fallback;
+
+                const SHOW_BAR = config?.SHOW_TIMER_BAR ?? true;
+                const BAR_POS = config?.BAR_POS ?? 'Top';
+                const BAR_THICK = config?.BAR_THICK ?? 10;
+
+                const card = document.createElement('div');
+
+                // Set Style and Effect tags
+                card.setAttribute('class', 'card');
+                card.setAttribute('data-fx', 'slide-up');
+                card.style.position = 'relative';
+                card.innerHTML = ` 
+                    <div class="row"><div class="title">${title}</div></div>
+                    <div class="row"><div class="meta">${meta}</div></div>
+                    <div class="row"><div class="note">${note}</div></div>
+                    ${SHOW_BAR ? `<div data-ui="bar" class="bar"><i class="fill" style="width:100%"></i></div>` : ``} 
+                    `;
+                
+                // place bar according to bar_pos
+                const bar = card.querySelector('.bar');
+                if (bar) {
+                    Object.assign(bar.style, { position:'absolute', left:'0', right:'0' });
+                    if (BAR_POS==='Top'){ bar.style.top='0'; bar.style.height=BAR_THICK+'px'; }
+                    else if (BAR_POS==='Bottom'){ bar.style.bottom='0'; bar.style.height=BAR_THICK+'px'; }
+                    else if (BAR_POS==='Left'){ bar.style.top='0'; bar.style.bottom='0'; bar.style.width=BAR_THICK+'px'; bar.style.left='0'; bar.querySelector('.fill').style.height='100%'; }
+                    else { bar.style.top='0'; bar.style.bottom='0'; bar.style.width=BAR_THICK+'px'; bar.style.right='0'; bar.querySelector('.fill').style.height='100%'; }
+                }
+                card._lifeMs = life;
+                //console.log('makeCard lifeMS:', card._lifeMs);
+                return card;
+            };
+
+            async function runCard(card) {
+                //console.log('Run Card:', card);
+                stackEl.appendChild(card);
+                // timer bar shrink
+                const fill = card.querySelector('.fill');
+                if (fill) {
+                    // ensure transition kicks in after layout
+                    requestAnimationFrame(()=>{
+                        void fill.offsetWidth;
+                        fill.style.transition = `width ${card._lifeMs}ms linear`;
+                        fill.style.width = '0%';
+                    });
+                }
+                //console.log('Wait Lifetime:', card._lifeMs);
+                // wait lifetime
+                await new Promise(r=> setTimeout(r, card._lifeMs));
+
+                // remove simple fade
+                card.style.transition = 'opacity 180ms ease, transform 180ms ease';
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(6px)';
+
+                await new Promise(r=> setTimeout(r, 200));
+
+                //console.log('Before card Removal:', card);
+                card.remove();
+            }
+
+            function pushAlertNode(node) {
+                //console.log('Push Alert Node:', node);
+                if (active.length < config?.MAX_STACK) { show(node); } else { pending.push(node); }
+            }
+
+            async function show(node) {
+                //console.log('Show Node:', node);
+                active.push(node);
+                try { await runCard(node); } finally {
+                    const i = active.indexOf(node);
+
+                    if (i>=0) active.splice(i,1);
+                    if (pending.length) show(pending.shift());
+                }
+            }
+
+            // Controller/Bus Wiring
+            function metaBuilder(d) {
+                const type = d?.type;
+
+                const u = d?.user;
+                const t = d?.tier;
+                const c = d?.count;
+                const v = d?.viewers;
+                const m = d?.months;
+
+                switch (type) {
+                    case "Follow":
+                        return TXT.FOLLOW(u);
+                        break;
+                    case "Sub":
+                        if (t === "Prime") { return TXT.PRIME(u); };
+                        return TXT.TIER(u, t);
+                        break;
+                    case "ReSub":
+                        return TXT.RESUB(u, m);
+                        break;
+                    case "Gift":
+                        return TXT.GIFT(u, c);
+                        break;
+                    case "Cheer":
+                        return TXT.CHEER(u, c);
+                        break;
+                    case "Raid":
+                        return TXT.RAID(u, v);
+                        break;
+                    case "AdRun": 
+                        return TXT.ADRUN();
+                        break;
+                }
+            };
+
+
+            // Sub Event Listener
+            Bus.addEventListener('alerts:sub', (e)=> {
+                //console.log('Sub Event Listener:', e);
+
+                const d = e.detail ?? {};
+                const user = d.user ?? 'NULL VALUE';
+                const tier = d.tier ?? 'NULL VALUE';
+                const title = `[ ${d.type} ]` ?? 'NULL VALUE';
+                const meta = metaBuilder(d);
+                const note = d.message ? `${String(d.message)}` : 'NULL VALUE';
+
+                const node = makeCard({ title, meta, note});
+                pushAlertNode(node);
+
+                //console.log('stackEl id =', stackEl && stackEl.id);
+            });
 
         </script>
     </body>

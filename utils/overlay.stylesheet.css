@@ -65,19 +65,7 @@ html, body{
 .t-xs{ font-size:16px; } .t-sm{ font-size:18px; } .t-md{ font-size:22px; }
 .t-lg{ font-size:28px; } .t-xl{ font-size:36px; } .t-2xl{ font-size:44px; }
 
-/* Optional scanlines (OFF unless you add .u-scan-on to a parent) */
-.u-scan{ position:relative; }
-.u-scan::after{
-  content:""; position:absolute; inset:0; pointer-events:none; opacity:.7; display:none;
-  background:repeating-linear-gradient(
-    to bottom,
-    rgba(124,255,124,.06) 0,
-    rgba(124,255,124,.06) 1px,
-    transparent 2px,
-    transparent 3px
-  );
-}
-.u-scan-on .u-scan::after{ display:block; }
+
 
 /* Data-driven bars */
 [data-ui~="bar"]{
@@ -103,3 +91,137 @@ html, body{
 @media (prefers-reduced-motion: reduce){
   *{ transition:none !important; animation:none !important; }
 }
+
+/* Stack container (position configurable) */
+  #stack {
+    position: absolute;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    align-items: center;
+    pointer-events: none;
+    width: min(70vw, 2100px);
+    /* wider for centered layout */
+  }
+
+  /* Alert card */
+  .card {
+    position: relative;
+    pointer-events: none;
+    overflow: hidden;
+    border: 1px dashed var(--dash);
+    box-shadow: inset 0 0 0 1px var(--ln), 0 0 18px rgba(0, 0, 0, .55);
+    background: rgba(0, 0, 0, .86);
+    padding: 42px 18px 16px 18px;
+    opacity: 0;
+    transform: translateY(8px);
+    max-width: 100%;
+  }
+
+  .card .chip {
+    position: absolute;
+    top: 12px;
+    left: 10px;
+    color: var(--fgd);
+    font-size: 20px;
+    opacity: .95
+  }
+
+  .card .chk {
+    position: absolute;
+    right: 10px;
+    bottom: 5px;
+    font-size: 10px;
+    color: var(--fgd);
+    opacity: .85;
+    letter-spacing: .06em
+  }
+
+  .card .row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .card .title {
+    font-size: 34px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis
+  }
+
+  .card .meta {
+    color: var(--fgd)
+  }
+
+  .card .note {
+    color: var(--acc)
+  }
+
+  /* Progress bar (card-local) */
+  .card .bar {
+    position: absolute;
+    background: var(--fg);
+    box-shadow: 0 0 10px var(--glow);
+    opacity: .95;
+  }
+
+  /* Amber sidebar accent (left edge) */
+  .card::before {
+    content: "";
+    position: absolute;
+    left: 6px;
+    top: 12px;
+    bottom: 5px;
+    width: 4px;
+    background: var(--acc);
+    box-shadow: 0 0 10px rgba(255, 191, 77, .45);
+    opacity: .8;
+  }
+
+  /* WebGL/fallback masks inside each card (sit above content) */
+  .card .glfx {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 5
+  }
+
+  .card .maskFallback {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 5
+  }
+
+  .card .cell {
+    position: absolute;
+    background: rgba(0, 0, 0, .90)
+  }
+
+  /* Scanlines over whole canvas (optional effect) */
+  .scan {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: .6;
+    mix-blend-mode: screen;
+    background: repeating-linear-gradient(to bottom, rgba(124, 255, 124, .06) 0, rgba(124, 255, 124, .06) 1px, transparent 2px, transparent 3px);
+    z-index: 0;
+  }
+
+  /* Status (Streamer.bot connection) */
+  #sb-status {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    padding: 2px 6px;
+    border: 1px dashed #b34a4a;
+    color: #ff6b6b;
+    background: rgba(0, 0, 0, .65);
+    font-size: 18px;
+    z-index: 99;
+  }
