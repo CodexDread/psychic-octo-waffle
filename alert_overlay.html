@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@streamerbot/client/dist/streamerbot-client.js"></script>
         <meta charset="utf-8">
         <meta http-equiv="Cache-Control" content="no-cache">
         <title></title>
@@ -9,13 +8,15 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
         
+        <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@streamerbot/client/dist/streamerbot-client.js"></script>
         <script src="https://unpkg.com/three@0.155.0/build/three.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
        
         <script src="./utils/overlay.utils.js"></script>
-        <script src="./utils/overlay.animations.js"></script>
         <script src="./utils/overlay.sb.js"></script>
         <link rel="stylesheet" href="./utils/overlay.stylesheet.css"></link>
+        <script src="./utils/overlay.animations.js"></script>
+    </head>
     <body>
         <div id="sb-status">[ no active streamer.bot instances ]</div>
         <div id="stack"></div>
@@ -23,26 +24,27 @@
         <script type="text/javascript">
 
             const cfg = window.overlayConfig;
-            const config = cfg?.ALERTS || {};
+            const alerts = cfg?.ALERTS || {};
 
             const { Bus, clamp, mmss } = window.overlayKit; // from utils
-            const stackEl = document.getElementById('stack');
-            
-            const active = []; // Active que
-            const pending = []; // Pending que
-            
-            const sbBadge = document.getElementById('sb-status');
+            const el = {
+                stack: document.getElementById('stack'),
+                sbBadge: document.getElementById('sb-status')
+            };
 
-            overlayKit.Bus.on('sb:connected', (e) => {
+            overlayKit.Bus.on('sb:connected', (e)=> {
                 const ok = !!(e.detail?.ok);
-                sbBadge.hidden = ok; // hidden when connected
+                el.sbBadge.hidden = ok;
             });
+
+            const active = []; //Active que
+            const pending = []; //Pending que
 
             // late-load check for sb connection
             let gotReply = false;
-            Bus.addEventListener('sb:connected', () => { gotReply = true });
+            Bus.addEventListener('sb:connected', ()=> { gotReply = true });
             Bus.emit('sb:ping');
-            setTimeout(() => { if (!gotReply) sbBadge.hidden = false; }, 1200);
+            setTimeout(()=> { if (!gotReply) el.sbBadge.hidden = false; }, 1200);
 
             function oneOf(...opts) { return opts[Math.floor(Math.random() * opts.length)]; }
             
@@ -97,139 +99,120 @@
                 ),
             };
 
-            function makeCard ({ title, meta='', note='', lifeMs }) {
-                const fallback = config?.ALERTS?.ALERT_LIFETIME_MS ?? 7000;
-                const life = Number.isFinite(lifeMs) ? lifeMs : fallback;
+            class makeAlertCard {
+                constructor(payload) {
+                    this.payload = payload || {};
+                    const d = this.payload;
 
-                const SHOW_BAR = config?.SHOW_TIMER_BAR ?? true;
-                const BAR_POS = config?.BAR_POS ?? 'Top';
-                const BAR_THICK = config?.BAR_THICK ?? 10;
-
-                const card = document.createElement('div');
-
-                // Set Style and Effect tags
-                card.setAttribute('class', 'card');
-                card.setAttribute('data-fx', 'slide-up');
-                card.style.position = 'relative';
-                card.innerHTML = ` 
-                    <div class="row"><div class="title">${title}</div></div>
-                    <div class="row"><div class="meta">${meta}</div></div>
-                    <div class="row"><div class="note">${note}</div></div>
-                    ${SHOW_BAR ? `<div data-ui="bar" class="bar"><i class="fill" style="width:100%"></i></div>` : ``} 
+                    this.el = document.createElement('div');
+                    this.el.className = 'card';
+                    this.el.innerHTML = `
+                        <div class="chip">[ ${d.title} ]</div>
+                        <div class="row"></div>
+                        <div class="row"><div class="meta"></div></div>
+                        <div class="row"><div class="note"></div></div>
+                        <div class="bar"></div>
+                        <div class="chk">chk = N U L L H O W L</div>
                     `;
+                    this.chip = this.el.querySelector('.chip');
+                    this.meta = this.el.querySelector('.meta');
+                    this.note = this.el.querySelector('.note');
+                    this.bar = this.el.querySelector('.bar');
+                    this.chk = this.el.querySelector('.chk');
+
+                    this._fill();
+                }
                 
-                // place bar according to bar_pos
-                const bar = card.querySelector('.bar');
-                if (bar) {
-                    Object.assign(bar.style, { position:'absolute', left:'0', right:'0' });
-                    if (BAR_POS==='Top'){ bar.style.top='0'; bar.style.height=BAR_THICK+'px'; }
-                    else if (BAR_POS==='Bottom'){ bar.style.bottom='0'; bar.style.height=BAR_THICK+'px'; }
-                    else if (BAR_POS==='Left'){ bar.style.top='0'; bar.style.bottom='0'; bar.style.width=BAR_THICK+'px'; bar.style.left='0'; bar.querySelector('.fill').style.height='100%'; }
-                    else { bar.style.top='0'; bar.style.bottom='0'; bar.style.width=BAR_THICK+'px'; bar.style.right='0'; bar.querySelector('.fill').style.height='100%'; }
+                _fill() {
+                    const d = this.payload, K = d.title;
+                    if (K === 'AdRun') {
+                        this.meta.textContent = TXT.ADRUN();
+
+                        const len = clamp(Math.round(d.length || 0));
+                        const adEnd = Date.now() + len * 1000;
+                        this.note.textContent = `midroll ends in ${mmss(len)}`;
+                        const _t = setInterval(()=> {
+                            const left = Math.max(0, Math.ceil((adEnd - Date.now()) / 1000));
+                            this.note.textContent = `midroll ends in ${mmss(left)}`;
+                            if (left <= 0) clearInterval(_t);
+                        }, 1000);
+
+                        this._durationMs = len * 1000;
+                        this._isAd = true;
+                    } else {
+
+                        this._isAd = false;
+                    }
                 }
-                card._lifeMs = life;
-                //console.log('makeCard lifeMS:', card._lifeMs);
-                return card;
-            };
 
-            async function runCard(card) {
-                //console.log('Run Card:', card);
-                stackEl.appendChild(card);
-                // timer bar shrink
-                const fill = card.querySelector('.fill');
-                if (fill) {
-                    // ensure transition kicks in after layout
-                    requestAnimationFrame(()=>{
-                        void fill.offsetWidth;
-                        fill.style.transition = `width ${card._lifeMs}ms linear`;
-                        fill.style.width = '0%';
-                    });
+                async appear() {
+                    anime.set(this.el, { opactiy: 1, translateY:0 });
                 }
-                //console.log('Wait Lifetime:', card._lifeMs);
-                // wait lifetime
-                await new Promise(r=> setTimeout(r, card._lifeMs));
 
-                // remove simple fade
-                card.style.transition = 'opacity 180ms ease, transform 180ms ease';
-                card.style.opacity = '0';
-                card.style.transform = 'translateY(6px)';
+                async disappear() {
+                    anime.set(this.el, { opacity: 0, translateY: 8 });
+                }
 
-                await new Promise(r=> setTimeout(r, 200));
+                async run() {
+                    await this.appear();
+                    //start text scramble
 
-                //console.log('Before card Removal:', card);
-                card.remove();
+                    //bar animation
+                    if (this._isAD) {
+                        anime.set(this.bar, { width: '100%' });
+                        await (anime({
+                            targets: this.bar, width: [ '100%', '0%'], duration: this._durationMs, easing: 'linear',
+                            update: (a)=> {
+                                const remain = Math.ceil(this._durationMs / 1000 - (a.progress / 100) * (this._durationMs / 1000));
+
+                                this.note.textContent = `midroll ends in ${mmss(remain)}`;
+                            }
+                        }).finished || Promise.resolved());
+                    } else {
+                        anime.set(this.bar, { width: '100%' });
+                        await (anime({
+                            targets: this.bar, width: [ '100%', '0%' ], duration: this.durationMs, easing: 'linear'
+                        }).finihsed || Promis.resolved());
+                    }
+
+                    //stop scramble then disapear
+                    await this.disappear();
+                }
+
+                destroy() {
+                    this.el.remove();
+                }
             }
 
-            function pushAlertNode(node) {
-                //console.log('Push Alert Node:', node);
-                if (active.length < config?.MAX_STACK) { show(node); } else { pending.push(node); }
+            //Stack manager
+            function pushAlertCard(card) {
+                if (active.length < alerts?.MAX_STACK) { showCard(card); } else { pending.push(card); }
             }
 
-            async function show(node) {
-                //console.log('Show Node:', node);
-                active.push(node);
-                try { await runCard(node); } finally {
-                    const i = active.indexOf(node);
+            async function showCard(card) {
+                el.stack.appendChild(card.el);
+                active.push(card);
 
-                    if (i>=0) active.splice(i,1);
-                    if (pending.length) show(pending.shift());
+                try { await card.run(); } finally { 
+                    const i = active.indexOf(card); if (i >= 0) active.splice(i, i);
+                    card.destroy();
+
+                    if (pending.length) {
+                        showCard(pending.shift());
+                    }
                 }
             }
 
-            // Controller/Bus Wiring
-            function metaBuilder(d) {
-                const type = d?.type;
-
-                const u = d?.user;
-                const t = d?.tier;
-                const c = d?.count;
-                const v = d?.viewers;
-                const m = d?.months;
-
-                switch (type) {
-                    case "Follow":
-                        return TXT.FOLLOW(u);
-                        break;
-                    case "Sub":
-                        if (t === "Prime") { return TXT.PRIME(u); };
-                        return TXT.TIER(u, t);
-                        break;
-                    case "ReSub":
-                        return TXT.RESUB(u, m);
-                        break;
-                    case "Gift":
-                        return TXT.GIFT(u, c);
-                        break;
-                    case "Cheer":
-                        return TXT.CHEER(u, c);
-                        break;
-                    case "Raid":
-                        return TXT.RAID(u, v);
-                        break;
-                    case "AdRun": 
-                        return TXT.ADRUN();
-                        break;
-                }
-            };
-
-
-            // Sub Event Listener
+            //Event Sub Listeners
             Bus.addEventListener('alerts:sub', (e)=> {
-                //console.log('Sub Event Listener:', e);
-
                 const d = e.detail ?? {};
-                const user = d.user ?? 'NULL VALUE';
-                const tier = d.tier ?? 'NULL VALUE';
-                const title = `[ ${d.type} ]` ?? 'NULL VALUE';
+
+                const title = d.title ?? 'NULL VALUE';
                 const meta = metaBuilder(d);
                 const note = d.message ? `${String(d.message)}` : 'NULL VALUE';
 
-                const node = makeCard({ title, meta, note});
-                pushAlertNode(node);
-
-                //console.log('stackEl id =', stackEl && stackEl.id);
-            });
-
+                pushAlertCard( new makeAlertCard({ title, meta, note}));
+            })
         </script>
     </body>
 </html>

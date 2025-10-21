@@ -28,7 +28,7 @@
     // Twitch
     client.on('Twitch.*', (payload) => {
         // Debug Entire Paylod to console for Developement
-        console.log('Twitch Event Received:', payload);
+        //console.log('Twitch Event Received:', payload);
 
         //Set Payload Type to Variable
         const alertType = payload.event.type;
@@ -128,34 +128,34 @@
                 //pushCard(new AlertCard('Prime', { user: payload.data.user.name, message: payload.data.text }));
                 Bus.emit('alerts:subPrime', payload);
             }*/
-            console.log('SB Parsed Output:', parsed);
-            Bus.emit('alerts:sub', parsed);
+                console.log('SB Parsed Output:', parsed);
+                Bus.emit('alerts:sub', parsed);
             break;
 
             case "GiftSub":
-            //pushCard(new AlertCard('Gift', { user: payload.data.user.name, count: payload.data.cumlativeTotal }));
-            Bus.emit('alerts:giftsub', parsed);
+                //pushCard(new AlertCard('Gift', { user: payload.data.user.name, count: payload.data.cumlativeTotal }));
+                Bus.emit('alerts:giftsub', parsed);
             break;
 
             case "Cheer":
-        /* if (!payload.data.anonymous) {
-                //pushCard(new AlertCard('Cheer', { user: payload.data.user.name, bits: payload.data.bits }));
-                Bus.emit('alerts:bits', payload);
-            } else {
-                //pushCard(new AlertCard('Cheer', { user: 'Anonymous', bits: payload.data.bits }));
-                Bus.emit('alerts:bitsanon', payload);
-            }*/
-        Bus.emit('alerts:bits', parsed)
+            /* if (!payload.data.anonymous) {
+                    //pushCard(new AlertCard('Cheer', { user: payload.data.user.name, bits: payload.data.bits }));
+                    Bus.emit('alerts:bits', payload);
+                } else {
+                    //pushCard(new AlertCard('Cheer', { user: 'Anonymous', bits: payload.data.bits }));
+                    Bus.emit('alerts:bitsanon', payload);
+                }*/
+                Bus.emit('alerts:bits', parsed)
             break;
 
             case "ReSub":
-            //pushCard(new AlertCard('ReSub', { user: payload.data.user.name, months: payload.data.cumulativeMonths }));
-            Bus.emit('alerts:resub', parsed);
+                //pushCard(new AlertCard('ReSub', { user: payload.data.user.name, months: payload.data.cumulativeMonths }));
+                Bus.emit('alerts:resub', parsed);
             break;
 
             case "AdRun":
-            //pushCard(new AlertCard('AdRun', { length: payload.data.length_seconds }));
-            Bus.emit('ads:start', parsed);
+                //pushCard(new AlertCard('AdRun', { length: payload.data.length_seconds }));
+                Bus.emit('ads:start', parsed);
             break;
         }
     });

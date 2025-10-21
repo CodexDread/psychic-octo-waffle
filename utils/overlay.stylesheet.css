@@ -68,17 +68,11 @@ html, body{
 
 
 /* Data-driven bars */
-[data-ui~="bar"]{
-  height:6px;
-  background:rgba(0,0,0,.5);
-  border:1px dashed var(--border);
-  position:relative;
-  overflow:hidden;
-}
-[data-ui~="bar"] > .fill{
-  position:absolute; left:0; top:0; bottom:0; width:0%;
-  background:var(--accent);
-  box-shadow:0 0 8px currentColor;
+.bar[data-ui="bar"] {
+    position: absolute;
+    background: var(--fg);
+    box-shadow: 0 0 10px var(--glow);
+    opacity: .95;
 }
 
 /* Utility */
