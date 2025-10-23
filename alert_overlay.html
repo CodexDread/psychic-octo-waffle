@@ -294,7 +294,7 @@
                 }
 
                 async disappear() {
-                    anime.set(this.el, { opacity: 0, translateY: 8 });
+                    //anime.set(this.el, { opacity: 0, translateY: 8 });
                     try {
                         await (this.mask ? this.mask.disappear(520) : Promise.reject('NO_WEBGL'));
                         this.mask && this.mask.hide();
@@ -324,7 +324,7 @@
                     } else {
                         anime.set(this.bar, { width: '100%' });
                         await (anime({
-                            targets: this.bar, width: [ '100%', '0%' ], duration: this.durationMs, easing: 'linear'
+                            targets: this.bar, width: [ '100%', '0%' ], duration: this._durationMs, easing: 'linear'
                         }).finished || Promise.resolve());
                     }
 

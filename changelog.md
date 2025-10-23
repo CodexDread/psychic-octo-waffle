@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Docs
 - Update `README.md` to reflect the modular overlay and the new entry point (`alert_overlay.html`) and utilities (`utils/*`).
+### Fixed
+- Correct alert card lifetime animation where the progress bar vanished instantly and cards overstayed because the Anime.js tween used `this.durationMs`; now references `this._durationMs` so the bar and dismissal honor the configured alert duration.
+- Alert exit animation no longer snaps invisible—removed the premature `anime.set(...)` so the fade/translate tween and mask transition play through before the card is destroyed.
 
 ## [1.0.0] - 2025-10-23 — Modular overlay rewrite
 ### Added
