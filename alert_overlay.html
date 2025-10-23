@@ -106,8 +106,9 @@
 
                     this.el = document.createElement('div');
                     this.el.className = 'card';
+                    this.el.setAttribute('data-ui', 'card');
                     this.el.innerHTML = `
-                        <div class="chip">[ ${d.title} ]</div>
+                        <div class="chip">[ ${d.type} ]</div>
                         <div class="row"></div>
                         <div class="row"><div class="meta"></div></div>
                         <div class="row"><div class="note"></div></div>
@@ -124,7 +125,7 @@
                 }
                 
                 _fill() {
-                    const d = this.payload, K = d.title;
+                    const d = this.payload, K = d.type;
                     if (K === 'AdRun') {
                         this.meta.textContent = TXT.ADRUN();
 
@@ -142,11 +143,25 @@
                     } else {
 
                         this._isAd = false;
+
+                        this.chip.textContent = d.type;
+                        this.meta.textContent = d.meta;
+                        this.note.textContent = d.note;
+
+                        //bar layout
+                        const b = this.bar;
+
+                        b.style.left = '0';
+                        b.style.top = '0';
+                        b.style.right = '0';
+                        b.style.height = '10px';
+
+                        this._durationMs = alerts?.ALERT_LIFETIME_MS;
                     }
                 }
 
                 async appear() {
-                    anime.set(this.el, { opactiy: 1, translateY:0 });
+                    anime.set(this.el, { opacity: 1, translateY: 0 });
                 }
 
                 async disappear() {
@@ -158,7 +173,7 @@
                     //start text scramble
 
                     //bar animation
-                    if (this._isAD) {
+                    if (this._isAd) {
                         anime.set(this.bar, { width: '100%' });
                         await (anime({
                             targets: this.bar, width: [ '100%', '0%'], duration: this._durationMs, easing: 'linear',
@@ -167,12 +182,12 @@
 
                                 this.note.textContent = `midroll ends in ${mmss(remain)}`;
                             }
-                        }).finished || Promise.resolved());
+                        }).finished || Promise.resolve());
                     } else {
                         anime.set(this.bar, { width: '100%' });
                         await (anime({
                             targets: this.bar, width: [ '100%', '0%' ], duration: this.durationMs, easing: 'linear'
-                        }).finihsed || Promis.resolved());
+                        }).finished || Promise.resolve());
                     }
 
                     //stop scramble then disapear
@@ -194,7 +209,7 @@
                 active.push(card);
 
                 try { await card.run(); } finally { 
-                    const i = active.indexOf(card); if (i >= 0) active.splice(i, i);
+                    const i = active.indexOf(card); if (i >= 0) active.splice(i, 1);
                     card.destroy();
 
                     if (pending.length) {
@@ -203,15 +218,46 @@
                 }
             }
 
+            function metaBuilder(d) {
+                const type = d?.type;
+
+                const u = d?.user;
+                const t = d?.tier;
+                const c = d?.count;
+                const v = d?.viewers;
+                const m = d?.months;
+
+                switch (type) {
+                    case "Follow":
+                        return TXT.FOLLOW(u);
+                        break;
+                    case "Sub":
+                        if (t === "Prime") { return TXT.PRIME(u); } else { return TXT.TIER(u, t); };
+                        break;
+                    case "ReSub":
+                        return TXT.RESUB(u, m);
+                        break;
+                    case "Gift":
+                        return TXT.GIFT(u, c);
+                        break;
+                    case "Cheer":
+                        return TXT.CHEER(u, c);
+                        break;
+                    case "Raid":
+                        return TXT.RAID(u, v);
+                        break;
+                }
+            };
+
             //Event Sub Listeners
             Bus.addEventListener('alerts:sub', (e)=> {
                 const d = e.detail ?? {};
 
-                const title = d.title ?? 'NULL VALUE';
+                const type = d.type ?? 'ALERT TYPE VALUE';
                 const meta = metaBuilder(d);
-                const note = d.message ? `${String(d.message)}` : 'NULL VALUE';
+                const note = d.message ? `${String(d.message)}` : 'USER MESSAGE VALUE';
 
-                pushAlertCard( new makeAlertCard({ title, meta, note}));
+                pushAlertCard( new makeAlertCard({ type, meta, note}));
             })
         </script>
     </body>

@@ -1,22 +1,22 @@
-# Psychic Octo Waffle
+# Psychic Octo Waffle — Overlay Kit v1
+A modular, retro-style alert overlay (VT323 / DOS-Unix vibe) for OBS that listens to Streamer.bot and renders alerts as animated cards. This update replaces the legacy single-file overlay with a shared **utils + styles + animations** kit.
 
-A standalone, retro-style alert overlay for streamers, implemented in a single HTML file with vanilla CSS and JavaScript. The overlay displays Twitch events with an ASCII/CRT aesthetic.
+## What’s new (v1.0.0)
+- New entry: `alert_overlay.html` (imports shared utils, SB client, styles, animations)
+- Central event bus (`overlayKit.Bus`) and helpers (`query`, `array`, `clamp`, `mmss`)
+- Declarative `data-fx` animations (fade, slide, scramble, progress bar fill)
+- Shared stylesheet and theme tokens (VT323, dashed borders, currentColor glow)
+- SB connection badge toggles via `[hidden]` when connected
 
-## Files
-- `alert_box.html` – main overlay code. It defines the visual style, configuration options, and event handling logic.
+## Requirements
+- **OBS** with Browser Source (local file or hosted)
+- **Streamer.bot** running locally (default `ws://127.0.0.1:8080/`)
+- Internet access for CDN scripts (Anime.js, Three.js, Streamer.bot client, Google Fonts) unless self-hosting
 
-## Features
-- **CRT-inspired visuals:** Uses custom CSS variables to control colors, fonts, and glow effects.
-- **WebGL distortion:** Three.js and Anime.js power an optional distortion mask and animations.
-- **Streamer.bot integration:** Connects to Streamer.bot via WebSocket to subscribe to Twitch events such as follows, raids, cheers, subs, resubs, gift subs, and ad breaks.
-- **Configurable behavior:** Edit the `CONFIG` block in the HTML to set stack position, timer bars, durations, and message templates.
-- **Offline testing:** Built-in test UI and keyboard shortcuts let you simulate events without connecting to Streamer.bot.
+## Quick Start
+1. Open **`alert_overlay.html`** as a Browser Source in OBS (Local File ✅).
+2. Ensure **Streamer.bot** is running on `127.0.0.1:8080`.
+3. Trigger a follow/sub/cheer/etc. and watch a card appear.
+4. The **SB status badge** (`#sb-status`) hides itself when connected.
 
-## Usage
-1. Open `alert_box.html` as a browser source in OBS or a web browser.
-2. Adjust settings inside the `CONFIG` object (host, port, visuals, etc.) to suit your setup.
-3. Enable `SHOW_TEST_UI` to display on-screen buttons for triggering example alerts.
-4. Run Streamer.bot and watch alerts animate in the overlay when events occur.
-
-## License
-No explicit license has been provided for this project.
+> Tip: If you keep this on disk, use absolute file paths in OBS or host the folder via a local server for caching and dev tools.

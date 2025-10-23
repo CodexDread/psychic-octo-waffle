@@ -1,9 +1,17 @@
 /* Overlay Kit v1 — shared theme + utilities (VT323, DOS/Unix vibe)
    Borders are 1px dashed. Glow uses currentColor. No scanlines by default. */
 :root{
-  --bg:#050705; --fg:#7CFF7C; --fg-dim:#57c957; --accent:#FFBF4D; --border:#2d3a2d;
+  --bg:#050705; 
+  --fg:#7CFF7C; 
+  --fg-dim:#57c957; 
+  --accent:#FFBF4D; 
+  --border:#57c957;
   --font:"VT323", monospace;
-  --pad:12px; --gap:16px;
+  --pad:12px; 
+  --gap:16px;
+  --glow: currentColor;
+  --fontsize: 28px;
+  --dash: #57c957;
 }
 
 html, body{
@@ -12,7 +20,7 @@ html, body{
   color:var(--fg);
   font-family:var(--font);
   letter-spacing:.02em;
-  line-height:1;
+  text-shadow: 0 0 6px var(--glow), 0 0 14px var(--glow);
 }
 
 /* Glow always matches text color */
@@ -33,7 +41,7 @@ html, body{
   border:1px dashed var(--border);
   background:rgba(0,0,0,.85);
   padding:12px;
-  border-radius:8px;
+  max-width: 100%;
 }
 
 /* Chips / badges / labels / rules */
@@ -161,19 +169,6 @@ html, body{
     background: var(--fg);
     box-shadow: 0 0 10px var(--glow);
     opacity: .95;
-  }
-
-  /* Amber sidebar accent (left edge) */
-  .card::before {
-    content: "";
-    position: absolute;
-    left: 6px;
-    top: 12px;
-    bottom: 5px;
-    width: 4px;
-    background: var(--acc);
-    box-shadow: 0 0 10px rgba(255, 191, 77, .45);
-    opacity: .8;
   }
 
   /* WebGL/fallback masks inside each card (sit above content) */
