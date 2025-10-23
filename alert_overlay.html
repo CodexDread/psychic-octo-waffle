@@ -25,6 +25,7 @@
 
             const cfg = window.overlayConfig;
             const alerts = cfg?.ALERTS || {};
+            const { DistortionMask, MosaicFallback, createMask } = window.overlayFX;
 
             const { Bus, clamp, mmss } = window.overlayKit; // from utils
             const el = {
@@ -99,123 +100,6 @@
                 ),
             };
 
-            class DistortionMask {
-                constructor(cardEl) {
-                this.host = document.createElement('div');
-                this.host.className = 'glfx';
-                cardEl.appendChild(this.host);
-
-                this.enabled = true;
-                try {
-                    this.renderer = new THREE.WebGLRenderer({ alpha: true, antialias: false, powerPreference: 'high-performance' });
-                    const ctx = this.renderer.getContext();
-                    if (!ctx) throw new Error('No WebGL');
-                } catch (e) {
-                    this.enabled = false;
-                    this.host.style.display = 'none';
-                    return;
-                }
-                this.scene = new THREE.Scene();
-                this.camera = new THREE.OrthographicCamera(-1, 1, 1, -1, -1, 1);
-                this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-                this.host.appendChild(this.renderer.domElement);
-
-                const geo = new THREE.PlaneGeometry(2, 2);
-                this.uniforms = {
-                    uTime: { value: 0 },
-                    uLevel: { value: 1 }, // 1 cover, 0 reveal
-                    uGrid: { value: new THREE.Vector2(54, 7) },
-                    uSoft: { value: 0.12 },
-                    uJitter: { value: 0.015 }
-                };
-                const vert = `precision highp float; varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position,1.0);} `;
-                const frag = `
-                precision highp float; varying vec2 vUv;
-                uniform float uTime, uLevel, uSoft, uJitter; uniform vec2 uGrid;
-                float hash21(vec2 p){ p=fract(p*vec2(123.34,345.45)); p+=dot(p,p+34.345); return fract(p.x*p.y); }
-                void main(){
-                    vec2 gridUV=vUv*uGrid; vec2 id=floor(gridUV); vec2 uv=fract(gridUV);
-                    float rnd=hash21(id);
-                    vec2 jit=(vec2(hash21(id+7.1),hash21(id+3.7))-0.5)*uJitter*(1.0+0.75*sin(uTime*3.0+rnd*6.2831));
-                    vec2 cu=clamp(uv+jit,0.0,1.0);
-                    float keep=step(rnd,uLevel);
-                    vec2 edge=smoothstep(0.0,uSoft,cu)*smoothstep(0.0,uSoft,1.0-cu);
-                    float alpha=keep*edge.x*edge.y*(0.9+0.1*sin(uTime*20.0+rnd*12.0));
-                    gl_FragColor=vec4(0.0,0.0,0.0,alpha);
-                }`;
-                this.mat = new THREE.ShaderMaterial({ uniforms: this.uniforms, vertexShader: vert, fragmentShader: frag, transparent: true });
-                this.mesh = new THREE.Mesh(geo, this.mat);
-                this.scene.add(this.mesh);
-
-                this._time = 0; this._anim = null; this._running = true;
-                const ro = new ResizeObserver(() => this.resize());
-                ro.observe(cardEl); this._ro = ro;
-                this.resize(); this._loop();
-                }
-                resize() {
-                if (!this.enabled) return;
-                const w = this.host.clientWidth || this.host.parentElement.clientWidth || 1;
-                const h = this.host.clientHeight || this.host.parentElement.clientHeight || 1;
-                this.renderer.setSize(w, h, false);
-                }
-                _loop() {
-                if (!this.enabled || !this._running) return;
-                this._time += 0.016;
-                this.uniforms.uTime.value = this._time;
-                this.renderer.render(this.scene, this.camera);
-                requestAnimationFrame(() => this._loop());
-                }
-                appear(ms) {
-                if (!this.enabled) return Promise.reject('NO_WEBGL');
-                if (this._anim) this._anim.pause();
-                this.uniforms.uLevel.value = 1.0;
-                this.host.style.display = 'block';
-                this._anim = anime({ targets: this.uniforms.uLevel, value: 0, duration: ms, easing: 'easeOutCubic' });
-                return this._anim.finished || Promise.resolve();
-                }
-                disappear(ms) {
-                if (!this.enabled) return Promise.reject('NO_WEBGL');
-                if (this._anim) this._anim.pause();
-                this.uniforms.uLevel.value = 0.0;
-                this.host.style.display = 'block';
-                this._anim = anime({ targets: this.uniforms.uLevel, value: 1, duration: ms, easing: 'easeInCubic' });
-                return this._anim.finished || Promise.resolve();
-                }
-                hide() { this.host.style.display = 'none'; }
-                destroy() { this._running = false; this._ro && this._ro.disconnect(); this.renderer && this.renderer.dispose(); this.host.remove(); }
-            }
-
-            /* Fallback mosaic if no WebGL */
-            class MosaicFallback {
-                constructor(cardEl) {
-                this.host = document.createElement('div'); this.host.className = 'maskFallback'; cardEl.appendChild(this.host);
-                this.cells = []; this.cols = 38; this.rows = 18; this._build();
-                }
-                _build() {
-                this.host.innerHTML = ''; this.cells.length = 0;
-                const cw = 100 / this.cols, ch = 100 / this.rows;
-                for (let r = 0; r < this.rows; r++) {
-                    for (let c = 0; c < this.cols; c++) {
-                    const d = document.createElement('div'); d.className = 'cell';
-                    d.style.left = `${c * cw}%`; d.style.top = `${r * ch}%`; d.style.width = `${cw + 0.2}%`; d.style.height = `${ch + 0.3}%`;
-                    d.style.opacity = 1; this.host.appendChild(d); this.cells.push(d);
-                    }
-                }
-                }
-                appear(ms) {
-                anime.set(this.cells, { opacity: 1 }); this.host.style.display = 'block';
-                const a = anime({ targets: this.cells, opacity: [{ value: 0, duration: ms, easing: 'easeOutQuad' }], delay: anime.stagger(8, { grid: [this.rows, this.cols], from: 'center' }) });
-                return a.finished || Promise.resolve();
-                }
-                disappear(ms) {
-                anime.set(this.cells, { opacity: 0 }); this.host.style.display = 'block';
-                const a = anime({ targets: this.cells, opacity: [{ value: 1, duration: ms, easing: 'easeInQuad' }], delay: anime.stagger(6, { grid: [this.rows, this.cols], from: 'center' }) });
-                return a.finished || Promise.resolve();
-                }
-                hide() { this.host.style.display = 'none'; }
-                destroy() { this.host.remove(); }
-            }
-
             class makeAlertCard {
                 constructor(payload) {
                     this.payload = payload || {};
@@ -230,7 +114,7 @@
                         <div class="row"><div class="meta"></div></div>
                         <div class="row"><div class="note"></div></div>
                         <div class="bar"></div>
-                        <div class="chk">chk = N U L L H O W L</div>
+                       <div class="row"><div class="chk" data-fx="scramble" data-fx-opts='{"loop":true,"text":"lore = N U L L H O W L"}'>lore = N U L L H O W L</div></div>
                     `;
                     this.chip = this.el.querySelector('.chip');
                     this.meta = this.el.querySelector('.meta');
@@ -239,8 +123,9 @@
                     this.chk = this.el.querySelector('.chk');
 
                     //mask
-                    this.mask = new DistortionMask(this.el);
-                    if (!this.mask.enabled) this.fallback = new MosaicFallback(this.el);
+                    const { mask, fallback } = createMask(this.el);
+                    this.mask = mask;
+                    this.fallback = fallback;
 
                     this._fill();
                 }
@@ -265,7 +150,7 @@
 
                         this._isAd = false;
 
-                        this.chip.textContent = d.type;
+                        this.chip.textContent = `[ ${d.type} ]`;
                         this.meta.textContent = d.meta;
                         this.note.textContent = d.note;
 
@@ -308,7 +193,6 @@
 
                 async run() {
                     await this.appear();
-                    //start text scramble
 
                     //bar animation
                     if (this._isAd) {
@@ -328,7 +212,6 @@
                         }).finished || Promise.resolve());
                     }
 
-                    //stop scramble then disapear
                     await this.disappear();
                 }
 
@@ -385,16 +268,29 @@
                     case "Raid":
                         return TXT.RAID(u, v);
                         break;
+                    case "AdRun":
+                        return TXT.ADRUN();
+                        break;
                 }
+            };
+
+            const stripNullStrings = (value) => {
+                if (value === 'null') return '';        // or '' if you prefer
+                if (!value || typeof value !== 'object') return value;
+                if (Array.isArray(value)) return value.map(stripNullStrings);
+                return Object.fromEntries(
+                    Object.entries(value).map(([key, val]) => [key, stripNullStrings(val)])
+                );
             };
 
             //Event Sub Listeners
             Bus.addEventListener('alerts:sub', (e)=> {
-                const d = e.detail ?? {};
+                const raw = e.detail ?? {};
+                const d = stripNullStrings(raw);
 
                 const type = d.type ?? 'ALERT TYPE VALUE';
                 const meta = metaBuilder(d);
-                const note = d.message ? `${String(d.message)}` : 'USER MESSAGE VALUE';
+                const note = d.message ? `${String(d.message)}`: '';
 
                 pushAlertCard( new makeAlertCard({ type, meta, note}));
             })

@@ -94,67 +94,30 @@
         const parsed = buildSub(payload);
         switch (alertType) {
             case "Follow":
-                //console.log("User $[alertUser] has followed");
-                // Old System
-                //pushCard(new AlertCard('Follow', { user: payload.data.user_name, note: 'uplink joined' }));
                 Bus.emit('alerts:follow', parsed);
                 break;
 
             case "Raid":
-                //pushCard(new AlertCard('Raid', { user: payload.data.from_broadcaster_user_name, viewers: payload.data.viewers }));
                 Bus.emit('alerts:raid', parsed);
                 break;
 
             case "Sub":
-        /* if (!payload.data.is_prime) {
-                switch (payload.data.sub_tier) {
-                case "1000":
-                    //pushCard(new AlertCard('Sub', { user: payload.data.user.name, tier: 'T1', message: payload.data.text }));
-                    Bus.emit('alerts:subt1', payload);
-                    break;
-
-                case "2000":
-                    //pushCard(new AlertCard('Sub', { user: payload.data.user.name, tier: 'T2', message: payload.data.text }));
-                    Bus.emit('alerts:subt2', payload);
-                    break;
-
-                case "3000":
-                    //pushCard(new AlertCard('Sub', { user: payload.data.user.name, tier: 'T3', message: payload.data.text }));
-                    Bus.emit('alerts:subt3', payload);
-
-                    break;
-                }
-            } else {
-                //pushCard(new AlertCard('Prime', { user: payload.data.user.name, message: payload.data.text }));
-                Bus.emit('alerts:subPrime', payload);
-            }*/
-                console.log('SB Parsed Output:', parsed);
                 Bus.emit('alerts:sub', parsed);
             break;
 
             case "GiftSub":
-                //pushCard(new AlertCard('Gift', { user: payload.data.user.name, count: payload.data.cumlativeTotal }));
                 Bus.emit('alerts:giftsub', parsed);
             break;
 
             case "Cheer":
-            /* if (!payload.data.anonymous) {
-                    //pushCard(new AlertCard('Cheer', { user: payload.data.user.name, bits: payload.data.bits }));
-                    Bus.emit('alerts:bits', payload);
-                } else {
-                    //pushCard(new AlertCard('Cheer', { user: 'Anonymous', bits: payload.data.bits }));
-                    Bus.emit('alerts:bitsanon', payload);
-                }*/
                 Bus.emit('alerts:bits', parsed)
             break;
 
             case "ReSub":
-                //pushCard(new AlertCard('ReSub', { user: payload.data.user.name, months: payload.data.cumulativeMonths }));
                 Bus.emit('alerts:resub', parsed);
             break;
 
             case "AdRun":
-                //pushCard(new AlertCard('AdRun', { length: payload.data.length_seconds }));
                 Bus.emit('ads:start', parsed);
             break;
         }

@@ -6,10 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Docs
-- Update `README.md` to reflect the modular overlay and the new entry point (`alert_overlay.html`) and utilities (`utils/*`).
+- (2025-10-23) Update `README.md` to reflect the modular overlay and the new entry point (`alert_overlay.html`) and utilities (`utils/*`).
+### Changed
+- (2025-10-23) Moved `DistortionMask` and `MosaicFallback` classes into `utils/overlay.animations.js` and export helpers via `window.overlayFX`, keeping overlay animations modular and reusable.
+- (2025-10-23) Reworked the `overlayFX.scramble` handler to support looping animations with configurable delays so long-lived labels (like the chk badge) can continue cycling text.
+- (2025-10-23) Alert card template now feeds the chk badge through `data-fx="scramble"` (with legacy copy) and restores bracketed chip labels (`[ TYPE ]`) while adding explicit `AdRun` meta handling.
 ### Fixed
-- Correct alert card lifetime animation where the progress bar vanished instantly and cards overstayed because the Anime.js tween used `this.durationMs`; now references `this._durationMs` so the bar and dismissal honor the configured alert duration.
-- Alert exit animation no longer snaps invisible—removed the premature `anime.set(...)` so the fade/translate tween and mask transition play through before the card is destroyed.
+- (2025-10-23) Correct alert card lifetime animation where the progress bar vanished instantly and cards overstayed because the Anime.js tween used `this.durationMs`; now references `this._durationMs` so the bar and dismissal honor the configured alert duration.
+- (2025-10-23) Alert exit animation no longer snaps invisible—removed the premature `anime.set(...)` so the fade/translate tween and mask transition play through before the card is destroyed.
+- (2025-10-23) Bus payloads now strip string `"null"` values before building alert cards, preventing placeholder text from rendering when fields are absent.
+- (2025-10-23) Empty user messages no longer show the `"USER MESSAGE VALUE"` fallback; the note row stays blank unless a message exists.
 
 ## [1.0.0] - 2025-10-23 — Modular overlay rewrite
 ### Added

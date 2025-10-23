@@ -4,14 +4,20 @@
   --bg:#050705; 
   --fg:#7CFF7C; 
   --fg-dim:#57c957; 
-  --accent:#FFBF4D; 
+  --acc:#FFBF4D; 
   --border:#57c957;
   --font:"VT323", monospace;
   --pad:12px; 
   --gap:16px;
   --glow: currentColor;
-  --fontsize: 28px;
   --dash: #57c957;
+  /* Type scale */
+  --t-xs: 16px;
+  --t-sm: 18px;
+  --t-md: 22px;
+  --t-lg: 28px;
+  --t-xl: 36px;
+  --t-2xl: 44px;
 }
 
 html, body{
@@ -46,12 +52,12 @@ html, body{
 
 /* Chips / badges / labels / rules */
 [data-ui~="chip"]{
-  border:1px dashed var(--accent);
-  color:var(--accent);
+  border:1px dashed var(--acc);
+  color:var(--acc);
   padding:2px 8px;
   font-size:20px;
 }
-[data-ui~="label"]{ color:var(--accent); }
+[data-ui~="label"]{ color:var(--acc); }
 [data-ui~="rule"]{ color:var(--fg-dim); opacity:.85; }
 
 /* Frames + aspect helpers */
@@ -68,12 +74,6 @@ html, body{
 .u-grid{ display:grid; gap:var(--gap); padding:var(--pad); box-sizing:border-box; }
 .u-row{ display:flex; gap:var(--gap); align-items:flex-start; }
 .u-col{ display:flex; flex-direction:column; gap:var(--gap); }
-
-/* Type scale */
-.t-xs{ font-size:16px; } .t-sm{ font-size:18px; } .t-md{ font-size:22px; }
-.t-lg{ font-size:28px; } .t-xl{ font-size:36px; } .t-2xl{ font-size:44px; }
-
-
 
 /* Data-driven bars */
 .bar[data-ui="bar"] {
@@ -102,7 +102,7 @@ html, body{
     transform: translateX(-50%);
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: var(--gap);
     align-items: center;
     pointer-events: none;
     width: min(70vw, 2100px);
@@ -127,8 +127,8 @@ html, body{
     position: absolute;
     top: 12px;
     left: 10px;
-    color: var(--fgd);
-    font-size: 20px;
+    color: var(--fg-dim);
+    font-size: var(--t-xs);
     opacity: .95
   }
 
@@ -136,16 +136,16 @@ html, body{
     position: absolute;
     right: 10px;
     bottom: 5px;
-    font-size: 10px;
-    color: var(--fgd);
+    font-size: var(--t-xs);
+    color: var(--fg-dim);
     opacity: .85;
-    letter-spacing: .06em
+    letter-spacing: .06em;
   }
 
   .card .row {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
   }
 
   .card .title {
@@ -156,10 +156,12 @@ html, body{
   }
 
   .card .meta {
-    color: var(--fgd)
+    font-size: var(--t-lg);
+    color: var(--fg)
   }
 
   .card .note {
+    font-size: var(--t-md);
     color: var(--acc)
   }
 
