@@ -21,7 +21,7 @@
     const array = (sel, el=document)=> Array.from(el.querySelectorAll(sel)); // Select all elements of this type
 
     // Math / Format Helpers
-    const clamp = (n, a, b)=> Math.max(a, Math.min(b,n)); // keep between 2 values (b,n)
+    const clamp = (n, min, max) => Math.max(min, Math.min(max, n)); // keep between 2 values (b,n)
     const mmss = (sec)=>{ // convert seconds into minutes:seconds
         sec = Math.max(0, Math.floor(sec||0));
         const m = String(Math.floor(sec/60)).padStart(2, '0');

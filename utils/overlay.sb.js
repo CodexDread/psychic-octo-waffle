@@ -20,6 +20,47 @@
         }
     });
 
+    // Helper functions for data parsing
+    // Defines Sub Tier
+    function tierLabel (payload){
+        if (payload.data.is_prime == true){
+            return 'Prime';
+        }
+        switch (payload.data.sub_tier){
+            case '1000': return "T1";
+            case '2000': return "T2";
+            case '3000': return "T3";
+            default:     return 'null';
+        }
+    };
+    // Parse username path
+    function getUsername(payload) {
+        return payload.data.user_name
+            || payload.data.user.name 
+            || payload.data.from_broadcaster_user_name
+            || 'null';
+    };
+
+    function getCounts(payload) {
+        return payload.data.cumlativeTotal
+        || payload.data.bits
+        || 'null';
+    };
+
+    function getAdTimer(alertType, payload) {
+        return payload.data.length_seconds
+        || 'null';
+    };
+
+    function getUserMessage (payload) {
+        return payload.data.text
+        || 'null';
+    };
+
+    function getMonthsSubbed (payload) {
+        return payload.data.cumulativeMonths
+        || 'null';
+    };
 
     // Youtube
 
@@ -50,7 +91,7 @@
         // Parse username path
         function getUsername(payload) {
             return payload.data.user_name
-                || payload.data.user.name 
+                || payload.data.user?.name 
                 || payload.data.from_broadcaster_user_name
                 || 'null';
         };
@@ -118,6 +159,7 @@
             break;
 
             case "AdRun":
+                console.log(parsed);
                 Bus.emit('ads:start', parsed);
             break;
         }

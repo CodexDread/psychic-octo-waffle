@@ -11,6 +11,8 @@
   --gap:16px;
   --glow: currentColor;
   --dash: #57c957;
+  --chat-width: 250px;
+  --stats-height: 50px;
   /* Type scale */
   --t-xs: 16px;
   --t-sm: 18px;
@@ -83,6 +85,28 @@ html, body{
     opacity: .95;
 }
 
+#stats-grid {
+  width: fit-content;
+}
+
+.camera {
+  grid-column: 1 / 2;
+  grid-row: 2;
+  display:grid;
+  background-color: #05070584;
+}
+
+.camera .camera-frame {
+  border: 2px dashed var(--dash);
+  padding: var(--pad);
+}
+
+.ui-label {
+  place-items: center;
+  font-size: var(--t-xs);
+  max-width: fit-content;
+}
+
 /* Utility */
 .hidden{ display:none !important; }
 
@@ -105,7 +129,7 @@ html, body{
     gap: var(--gap);
     align-items: center;
     pointer-events: none;
-    width: min(70vw, 2100px);
+    width: min(70vw, 2200px);
     /* wider for centered layout */
   }
 
@@ -120,6 +144,7 @@ html, body{
     padding: 42px 18px 16px 18px;
     opacity: 0;
     transform: translateY(8px);
+    width: 960px;
     max-width: 100%;
   }
 
@@ -191,17 +216,6 @@ html, body{
   .card .cell {
     position: absolute;
     background: rgba(0, 0, 0, .90)
-  }
-
-  /* Scanlines over whole canvas (optional effect) */
-  .scan {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    opacity: .6;
-    mix-blend-mode: screen;
-    background: repeating-linear-gradient(to bottom, rgba(124, 255, 124, .06) 0, rgba(124, 255, 124, .06) 1px, transparent 2px, transparent 3px);
-    z-index: 0;
   }
 
   /* Status (Streamer.bot connection) */

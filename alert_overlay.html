@@ -132,10 +132,20 @@
                 
                 _fill() {
                     const d = this.payload, K = d.type;
+
+                    //bar layout
+                    const b = this.bar;
+
+                    b.style.left = '0';
+                    b.style.top = '0';
+                    b.style.right = '0';
+                    b.style.height = '10px';
+
                     if (K === 'AdRun') {
                         this.meta.textContent = TXT.ADRUN();
 
-                        const len = clamp(Math.round(d.length || 0));
+                        //const len = clamp(Math.round(d.length || 0));
+                        const len = clamp(Math.round(Number(d.length) || 0), 0, 3600);
                         const adEnd = Date.now() + len * 1000;
                         this.note.textContent = `midroll ends in ${mmss(len)}`;
                         const _t = setInterval(()=> {
@@ -143,9 +153,9 @@
                             this.note.textContent = `midroll ends in ${mmss(left)}`;
                             if (left <= 0) clearInterval(_t);
                         }, 1000);
-
                         this._durationMs = len * 1000;
                         this._isAd = true;
+                        console.log(d.length, len , this._durationMs);
                     } else {
 
                         this._isAd = false;
@@ -153,14 +163,6 @@
                         this.chip.textContent = `[ ${d.type} ]`;
                         this.meta.textContent = d.meta;
                         this.note.textContent = d.note;
-
-                        //bar layout
-                        const b = this.bar;
-
-                        b.style.left = '0';
-                        b.style.top = '0';
-                        b.style.right = '0';
-                        b.style.height = '10px';
 
                         this._durationMs = alerts?.ALERT_LIFETIME_MS;
                     }
@@ -293,6 +295,62 @@
                 const note = d.message ? `${String(d.message)}`: '';
 
                 pushAlertCard( new makeAlertCard({ type, meta, note}));
+            })
+
+            Bus.addEventListener('alerts:resub', (e)=> {
+                const d = stripNullStrings(e.detail ?? {});
+
+                const type = d.type ?? 'ALERT TYPE VALUE';
+                const meta = metaBuilder(d);
+                const note = d.message ? `${String(d.message)}` : '';
+
+                pushAlertCard( new makeAlertCard({ type, meta, note }));
+            })
+
+            Bus.addEventListener('alerts:follow', (e)=> {
+                const d = stripNullStrings(e.detail ?? {});
+
+                const type = d.type ?? 'ALERT TYPE VALUE';
+                const meta = metaBuilder(d);
+
+                pushAlertCard( new makeAlertCard({ type, meta }));
+            })
+
+            Bus.addEventListener('alerts:raid', (e)=> {
+                const d = stripNullStrings(e.detail ?? {});
+
+                const type = d.type ?? 'ALERT TYPE VALUE';
+                const meta = metaBuilder(d);
+
+                pushAlertCard( new makeAlertCard({ type, meta }));
+            })
+
+            Bus.addEventListener('alerts:giftsub', (e)=> {
+                const d = stripNullStrings(e.detail ?? {});
+
+                const type = d.type ?? 'ALERT TYPE VALUE';
+                const meta = metaBuilder(d);
+
+                pushAlertCard( new makeAlertCard({ type, meta }));
+            })
+
+            Bus.addEventListener('alerts:bits', (e)=> {
+                const d = stripNullStrings(e.detail ?? {});
+
+                const type = d.type ?? 'ALERT TYPE VALUE';
+                const meta = metaBuilder(d);
+                const note = d.message ? `${String(d.message)}` : '';
+
+                pushAlertCard( new makeAlertCard({ type, meta, note }));
+            })
+
+            Bus.addEventListener('ads:start', (e)=> {
+                const d = stripNullStrings(e.detail ?? {});
+
+                const type = d.type ?? 'ALERT TYPE VALUE';
+                const meta = metaBuilder(d);
+                
+                pushAlertCard( new makeAlertCard({ type, meta, length: d.length }));
             })
         </script>
     </body>
